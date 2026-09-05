@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+client/node_modules/
+server/node_modules/
+
+# Environment files
+.env
+.env.local
+server/.env
+
+# Build
+client/build/
+dist/
+
+# Logs
+*.log
+npm-debug.log*
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Uploads (keep folder structure)
+uploads/*
+!uploads/.gitkeep
+
+# Temporary files
+*.tmp
+*.bak
+
+.vercel
+
+# Temp/test files
+test-login.json
+*.sql.bak
+
+# Lock files at root (if any)
+yarn.lock
