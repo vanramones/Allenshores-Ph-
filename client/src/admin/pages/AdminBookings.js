@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Form, Row, Col, Button, Badge, Modal, InputGroup } from 'react-bootstrap';
-import { FaSearch, FaEye, FaCalendarCheck, FaLock } from 'react-icons/fa';
+import { FaSearch, FaCheck, FaTimes, FaEye, FaTrash, FaEnvelope, FaCalendarCheck } from 'react-icons/fa';
 import { bookingsAPI } from '../../services/api';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
@@ -18,6 +18,9 @@ const AdminBookings = () => {
   });
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [showModal, setShowModal] = useState(false);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailData, setEmailData] = useState({ subject: '', message: '' });
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     fetchData();
@@ -42,6 +45,28 @@ const AdminBookings = () => {
     setFilters(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleStatusChange = async (id, status) => {
+    try {
+      await bookingsAPI.updateStatus(id, status);
+      toast.success(`Booking ${status}`);
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to update status');
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this booking?')) return;
+
+    try {
+      await bookingsAPI.delete(id);
+      toast.success('Booking deleted');
+      fetchData();
+    } catch (error) {
+      toast.error('Failed to delete booking');
+    }
+  };
+
   const viewBooking = async (id) => {
     try {
       const response = await bookingsAPI.getById(id);
@@ -49,6 +74,34 @@ const AdminBookings = () => {
       setShowModal(true);
     } catch (error) {
       toast.error('Failed to load booking details');
+    }
+  };
+
+  const openEmailModal = (booking) => {
+    setSelectedBooking(booking);
+    setEmailData({
+      subject: `Important Update - ${booking.booking_ref}`,
+      message: ''
+    });
+    setShowEmailModal(true);
+  };
+
+  const handleSendEmail = async (e) => {
+    e.preventDefault();
+    if (!emailData.subject.trim() || !emailData.message.trim()) {
+      toast.error('Please enter both subject and message');
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      await bookingsAPI.sendEmail(selectedBooking.id, emailData);
+      toast.success('Email sent successfully');
+      setShowEmailModal(false);
+      setEmailData({ subject: '', message: '' });
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to send email');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -74,12 +127,7 @@ const AdminBookings = () => {
 
   return (
     <div className="admin-bookings fade-in">
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <h2 className="fw-bold mb-0">Bookings Overview</h2>
-        <Badge bg="secondary" className="d-flex align-items-center gap-1 p-2">
-          <FaLock className="me-1" /> Read-Only (Owners manage their own bookings)
-        </Badge>
-      </div>
+      <h2 className="fw-bold mb-4">Manage Bookings</h2>
 
       {/* Stats Cards */}
       <Row className="g-3 mb-4">
@@ -229,14 +277,52 @@ const AdminBookings = () => {
                     <td>{booking.people}</td>
                     <td>{getStatusBadge(booking.status)}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      <Button
-                        variant="outline-primary"
-                        size="sm"
-                        onClick={() => viewBooking(booking.id)}
-                        title="View Details"
-                      >
-                        <FaEye />
-                      </Button>
+                      <div className="d-flex gap-1">
+                        {booking.status === 'pending' && (
+                          <>
+                            <Button
+                              variant="success"
+                              size="sm"
+                              onClick={() => handleStatusChange(booking.id, 'confirmed')}
+                              title="Confirm"
+                            >
+                              <FaCheck />
+                            </Button>
+                            <Button
+                              variant="danger"
+                              size="sm"
+                              onClick={() => handleStatusChange(booking.id, 'cancelled')}
+                              title="Cancel"
+                            >
+                              <FaTimes />
+                            </Button>
+                          </>
+                        )}
+                        <Button
+                          variant="outline-primary"
+                          size="sm"
+                          onClick={() => viewBooking(booking.id)}
+                          title="View Details"
+                        >
+                          <FaEye />
+                        </Button>
+                        <Button
+                          variant="outline-info"
+                          size="sm"
+                          onClick={() => openEmailModal(booking)}
+                          title="Send Email"
+                        >
+                          <FaEnvelope />
+                        </Button>
+                        <Button
+                          variant="outline-danger"
+                          size="sm"
+                          onClick={() => handleDelete(booking.id)}
+                          title="Delete"
+                        >
+                          <FaTrash />
+                        </Button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -306,10 +392,118 @@ const AdminBookings = () => {
           )}
         </Modal.Body>
         <Modal.Footer>
+          {selectedBooking?.status === 'pending' && (
+            <>
+              <Button 
+                variant="success" 
+                onClick={() => {
+                  handleStatusChange(selectedBooking.id, 'confirmed');
+                  setShowModal(false);
+                }}
+              >
+                <FaCheck className="me-1" /> Confirm
+              </Button>
+              <Button 
+                variant="danger" 
+                onClick={() => {
+                  handleStatusChange(selectedBooking.id, 'cancelled');
+                  setShowModal(false);
+                }}
+              >
+                <FaTimes className="me-1" /> Cancel
+              </Button>
+            </>
+          )}
           <Button variant="secondary" onClick={() => setShowModal(false)}>
             Close
           </Button>
         </Modal.Footer>
+      </Modal>
+
+      {/* Send Email Modal */}
+      <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FaEnvelope className="me-2" />
+            Send Email to Customer
+          </Modal.Title>
+        </Modal.Header>
+        <Form onSubmit={handleSendEmail}>
+          <Modal.Body>
+            {selectedBooking && (
+              <>
+                <div className="mb-3 p-3 bg-light rounded">
+                  <p className="mb-1"><strong>To:</strong> {selectedBooking.full_name} ({selectedBooking.email})</p>
+                  <p className="mb-0"><strong>Booking:</strong> {selectedBooking.booking_ref} - {selectedBooking.beach_name}</p>
+                </div>
+                <Form.Group className="mb-3">
+                  <Form.Label>Quick Message</Form.Label>
+                  <div className="d-flex flex-wrap gap-2">
+                    <Button
+                      variant="outline-info"
+                      size="sm"
+                      onClick={() => setEmailData({
+                        subject: `Reminder - Your visit on ${selectedBooking.visit_date}`,
+                        message: `Hi ${selectedBooking.full_name},\n\nThis is a friendly reminder that your booking at ${selectedBooking.beach_name} is coming up on ${selectedBooking.visit_date}.\n\nBooking Reference: ${selectedBooking.booking_ref}\nNumber of Guests: ${selectedBooking.people}\n\nWe look forward to seeing you soon!\n\nBest regards,\nAllenShores PH`
+                      })}
+                    >
+                      Reminder
+                    </Button>
+                    <Button
+                      variant="outline-success"
+                      size="sm"
+                      onClick={() => setEmailData({
+                        subject: 'Thank you for your booking!',
+                        message: `Hi ${selectedBooking.full_name},\n\nThank you for choosing AllenShores PH! We appreciate your booking at ${selectedBooking.beach_name}.\n\nWe hope you have a wonderful and memorable beach experience. If you have any questions, feel free to reach out to us.\n\nBooking Reference: ${selectedBooking.booking_ref}\n\nBest regards,\nAllenShores PH`
+                      })}
+                    >
+                      Thank You
+                    </Button>
+                    <Button
+                      variant="outline-warning"
+                      size="sm"
+                      onClick={() => setEmailData({
+                        subject: `Reschedule Request - ${selectedBooking.booking_ref}`,
+                        message: `Hi ${selectedBooking.full_name},\n\nWe received a request to reschedule your booking at ${selectedBooking.beach_name}.\n\nPlease reply to this email with your preferred new visit date, or contact us so we can assist you in finding the best available schedule.\n\nBooking Reference: ${selectedBooking.booking_ref}\n\nBest regards,\nAllenShores PH`
+                      })}
+                    >
+                      Reschedule
+                    </Button>
+                  </div>
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Subject</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={emailData.subject}
+                    onChange={(e) => setEmailData(prev => ({ ...prev, subject: e.target.value }))}
+                    required
+                    placeholder="Email subject"
+                  />
+                </Form.Group>
+                <Form.Group className="mb-3">
+                  <Form.Label>Message</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={6}
+                    value={emailData.message}
+                    onChange={(e) => setEmailData(prev => ({ ...prev, message: e.target.value }))}
+                    required
+                    placeholder="Type your message here..."
+                  />
+                </Form.Group>
+              </>
+            )}
+          </Modal.Body>
+          <Modal.Footer>
+            <Button variant="secondary" onClick={() => setShowEmailModal(false)}>
+              Cancel
+            </Button>
+            <Button type="submit" variant="primary" disabled={sendingEmail}>
+              {sendingEmail ? 'Sending...' : 'Send Email'}
+            </Button>
+          </Modal.Footer>
+        </Form>
       </Modal>
     </div>
   );

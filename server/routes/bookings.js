@@ -234,23 +234,155 @@ router.post('/', async (req, res) => {
 
 // @route   PUT /api/bookings/:id/status
 // @desc    Update booking status
-// @access  Private (Admin) - DISABLED: Only beach owners can manage their bookings
+// @access  Private (Admin)
 router.put('/:id/status', authMiddleware, async (req, res) => {
-  return res.status(403).json({ message: 'Booking management is now handled by beach owners. Admin can only view bookings.' });
+  try {
+    const { status } = req.body;
+
+    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+      return res.status(400).json({ message: 'Invalid status' });
+    }
+
+    await db.query('UPDATE bookings SET status = $1 WHERE id = $2', [status, req.params.id]);
+
+    const { rows: updatedBookingRows } = await db.query(
+      `SELECT bk.*, b.name as beach_name
+       FROM bookings bk
+       LEFT JOIN beaches b ON bk.beach_id = b.id
+       WHERE bk.id = $1`,
+      [req.params.id]
+    );
+
+    const booking = updatedBookingRows[0];
+    const logo = getLogoDataUri();
+
+    // Send email notification for confirmed/cancelled bookings
+    try {
+      if (status === 'confirmed') {
+        await sendEmail({
+          to: booking.email,
+          subject: `Booking Confirmed - ${booking.booking_ref}`,
+          text: `Hi ${booking.full_name},\n\nYour booking at ${booking.beach_name} on ${booking.visit_date} for ${booking.people} guest(s) has been CONFIRMED.\n\nReference: ${booking.booking_ref}\n\nThank you!\nAllenShores PH`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e0f2fe; margin-bottom: 20px;">
+                ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
+                <h1 style="color: #0077b6; margin: 10px 0 0; font-size: 24px;">AllenShores PH</h1>
+              </div>
+              <h2 style="color: #0077b6;">Booking Confirmed</h2>
+              <p>Hi <strong>${booking.full_name}</strong>,</p>
+              <p>Your booking at <strong>${booking.beach_name}</strong> has been <span style="color: green;"><strong>CONFIRMED</strong></span>.</p>
+              <ul>
+                <li><strong>Reference:</strong> ${booking.booking_ref}</li>
+                <li><strong>Visit Date:</strong> ${booking.visit_date}</li>
+                <li><strong>Guests:</strong> ${booking.people}</li>
+              </ul>
+              <p>Thank you!<br/>AllenShores PH</p>
+            </div>
+          `
+        });
+      } else if (status === 'cancelled') {
+        await sendEmail({
+          to: booking.email,
+          subject: `Booking Cancelled - ${booking.booking_ref}`,
+          text: `Hi ${booking.full_name},\n\nWe regret to inform you that your booking at ${booking.beach_name} on ${booking.visit_date} has been CANCELLED.\n\nReference: ${booking.booking_ref}\n\nFor inquiries, please contact us.\nAllenShores PH`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e0f2fe; margin-bottom: 20px;">
+                ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
+                <h1 style="color: #0077b6; margin: 10px 0 0; font-size: 24px;">AllenShores PH</h1>
+              </div>
+              <h2 style="color: #dc2626;">Booking Cancelled</h2>
+              <p>Hi <strong>${booking.full_name}</strong>,</p>
+              <p>We regret to inform you that your booking at <strong>${booking.beach_name}</strong> has been <span style="color: red;"><strong>CANCELLED</strong></span>.</p>
+              <ul>
+                <li><strong>Reference:</strong> ${booking.booking_ref}</li>
+                <li><strong>Visit Date:</strong> ${booking.visit_date}</li>
+              </ul>
+              <p>For inquiries, please contact us.<br/>AllenShores PH</p>
+            </div>
+          `
+        });
+      }
+    } catch (emailErr) {
+      console.error('Failed to send booking email:', emailErr.message);
+    }
+
+    res.json(booking);
+  } catch (err) {
+    console.error('Update booking status error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 // @route   POST /api/bookings/:id/email
 // @desc    Send custom email to customer
-// @access  Private (Admin) - DISABLED: Only beach owners can email their guests
+// @access  Private (Admin)
 router.post('/:id/email', authMiddleware, async (req, res) => {
-  return res.status(403).json({ message: 'Email to guests is now handled by beach owners. Admin can only view bookings.' });
+  try {
+    const { subject, message } = req.body;
+
+    if (!subject || !message) {
+      return res.status(400).json({ message: 'Subject and message are required' });
+    }
+
+    const { rows } = await db.query(
+      `SELECT bk.*, b.name as beach_name
+       FROM bookings bk
+       LEFT JOIN beaches b ON bk.beach_id = b.id
+       WHERE bk.id = $1`,
+      [req.params.id]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    const booking = rows[0];
+    const logo = getLogoDataUri();
+
+    await sendEmail({
+      to: booking.email,
+      subject,
+      text: `Hi ${booking.full_name},\n\n${message}\n\nBooking Reference: ${booking.booking_ref}\nBeach: ${booking.beach_name}\nVisit Date: ${booking.visit_date}\n\nAllenShores PH`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #e0f2fe; margin-bottom: 20px;">
+            ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
+            <h1 style="color: #0077b6; margin: 10px 0 0; font-size: 24px;">AllenShores PH</h1>
+          </div>
+          <h2 style="color: #0077b6;">${subject}</h2>
+          <p>Hi <strong>${booking.full_name}</strong>,</p>
+          <p style="white-space: pre-line;">${message.replace(/\n/g, '<br/>')}</p>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+          <p style="font-size: 0.9rem; color: #6b7280;">
+            <strong>Booking Reference:</strong> ${booking.booking_ref}<br/>
+            <strong>Beach:</strong> ${booking.beach_name}<br/>
+            <strong>Visit Date:</strong> ${booking.visit_date}
+          </p>
+          <p>AllenShores PH</p>
+        </div>
+      `
+    });
+
+    res.json({ message: 'Email sent successfully' });
+  } catch (err) {
+    console.error('Send booking email error:', err);
+    res.status(500).json({ message: err.message || 'Failed to send email' });
+  }
 });
 
 // @route   DELETE /api/bookings/:id
 // @desc    Delete booking
-// @access  Private (Admin) - DISABLED: Only beach owners can delete their bookings
+// @access  Private (Admin)
 router.delete('/:id', authMiddleware, async (req, res) => {
-  return res.status(403).json({ message: 'Booking deletion is now handled by beach owners. Admin can only view bookings.' });
+  try {
+    await db.query('DELETE FROM bookings WHERE id = $1', [req.params.id]);
+    res.json({ message: 'Booking deleted successfully' });
+  } catch (err) {
+    console.error('Delete booking error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
 });
 
 module.exports = router;

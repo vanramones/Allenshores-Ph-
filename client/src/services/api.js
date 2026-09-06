@@ -10,9 +10,11 @@ const api = axios.create({
   }
 });
 
-// Add token to requests if available
+// Add token to requests if available (check both admin and owner tokens)
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('adminToken');
+  const adminToken = localStorage.getItem('adminToken');
+  const ownerToken = localStorage.getItem('ownerToken');
+  const token = ownerToken || adminToken;
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
@@ -26,7 +28,10 @@ api.interceptors.response.use(
     if (error.response?.status === 401) {
       localStorage.removeItem('adminToken');
       localStorage.removeItem('adminUser');
-      if (window.location.pathname.startsWith('/admin') && window.location.pathname !== '/admin/login') {
+      localStorage.removeItem('ownerToken');
+      localStorage.removeItem('ownerUser');
+      const path = window.location.pathname;
+      if ((path.startsWith('/admin') || path.startsWith('/owner')) && path !== '/admin/login') {
         window.location.href = '/admin/login';
       }
     }

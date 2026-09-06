@@ -1,17 +1,35 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
-import { Nav, Button, Dropdown } from 'react-bootstrap';
+import { Nav, Button, Dropdown, Badge } from 'react-bootstrap';
 import {
   FaTachometerAlt, FaCalendarCheck, FaStar, FaFileAlt, FaEdit,
-  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaUmbrellaBeach
+  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaUmbrellaBeach, FaBell
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
+import { ownerAPI } from '../../services/api';
 
 const OwnerLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
   const { owner, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+
+  // Fetch pending bookings count for notification bell
+  useEffect(() => {
+    const fetchPendingCount = async () => {
+      try {
+        const response = await ownerAPI.getBookings({ status: 'pending' });
+        setPendingCount(response.data.length);
+      } catch (error) {
+        console.error('Error fetching pending count:', error);
+      }
+    };
+    fetchPendingCount();
+    // Refresh every 30 seconds
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
+  }, []);
 
   const handleLogout = () => {
     logout();
@@ -45,6 +63,7 @@ const OwnerLayout = ({ children }) => {
           location={location}
           onLogout={handleLogout}
           owner={owner}
+          pendingCount={pendingCount}
         />
       </aside>
 
@@ -56,6 +75,7 @@ const OwnerLayout = ({ children }) => {
           onLogout={handleLogout}
           owner={owner}
           onClose={() => setSidebarOpen(false)}
+          pendingCount={pendingCount}
         />
       </aside>
 
@@ -80,6 +100,26 @@ const OwnerLayout = ({ children }) => {
           </div>
 
           <div className="admin-topbar-right">
+            {/* Notification Bell */}
+            <Button
+              variant="light"
+              className="admin-notification-btn position-relative me-2"
+              onClick={() => navigate('/owner/bookings')}
+              title="Pending Bookings"
+            >
+              <FaBell />
+              {pendingCount > 0 && (
+                <Badge
+                  bg="danger"
+                  pill
+                  className="position-absolute"
+                  style={{ top: '-5px', right: '-5px', fontSize: '0.65rem' }}
+                >
+                  {pendingCount > 9 ? '9+' : pendingCount}
+                </Badge>
+              )}
+            </Button>
+
             <a
               href="/"
               target="_blank"
@@ -118,7 +158,7 @@ const OwnerLayout = ({ children }) => {
   );
 };
 
-const SidebarContent = ({ navItems, location, onLogout, owner, onClose }) => (
+const SidebarContent = ({ navItems, location, onLogout, owner, onClose, pendingCount }) => (
   <div className="admin-sidebar-inner d-flex flex-column h-100">
     {/* Brand */}
     <div className="admin-sidebar-brand">
@@ -157,6 +197,11 @@ const SidebarContent = ({ navItems, location, onLogout, owner, onClose }) => (
           >
             <span className="admin-nav-icon">{item.icon}</span>
             <span className="admin-nav-label">{item.label}</span>
+            {item.path === '/owner/bookings' && pendingCount > 0 && (
+              <Badge bg="danger" pill className="ms-auto" style={{ fontSize: '0.7rem' }}>
+                {pendingCount > 9 ? '9+' : pendingCount}
+              </Badge>
+            )}
             {isActive && <span className="admin-nav-active-dot"></span>}
           </Nav.Link>
         );
