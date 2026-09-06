@@ -17,6 +17,9 @@ const generateBookingRef = () => {
 // @route   GET /api/bookings
 // @desc    Get all bookings (Admin)
 // @access  Private
+// Owner-protected beach IDs - bookings for these beaches are only visible to their owners
+const OWNER_BEACH_IDS = [2, 7, 11];
+
 router.get('/', authMiddleware, async (req, res) => {
   try {
     const { status, search, from_date, to_date, sort } = req.query;
@@ -29,6 +32,11 @@ router.get('/', authMiddleware, async (req, res) => {
     `;
     const params = [];
     let paramIdx = 1;
+
+    // Super Admin should NOT see bookings for owner-managed beaches (2, 7, 11)
+    if (req.admin && req.admin.role === 'admin') {
+      sql += ` AND bk.beach_id NOT IN (2, 7, 11)`;
+    }
 
     if (status && status !== 'all') {
       sql += ` AND bk.status = $${paramIdx}`;
@@ -81,12 +89,17 @@ router.get('/', authMiddleware, async (req, res) => {
 // @access  Private (Admin)
 router.get('/stats', authMiddleware, async (req, res) => {
   try {
-    const { rows: totalRows } = await db.query('SELECT COUNT(*) as total FROM bookings');
-    const { rows: pendingRows } = await db.query("SELECT COUNT(*) as pending FROM bookings WHERE status = 'pending'");
-    const { rows: confirmedRows } = await db.query("SELECT COUNT(*) as confirmed FROM bookings WHERE status = 'confirmed'");
-    const { rows: cancelledRows } = await db.query("SELECT COUNT(*) as cancelled FROM bookings WHERE status = 'cancelled'");
-    const { rows: todayRows } = await db.query('SELECT COUNT(*) as todayBookings FROM bookings WHERE visit_date = CURRENT_DATE');
-    const { rows: weekRows } = await db.query('SELECT COUNT(*) as weekBookings FROM bookings WHERE visit_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL \'7 days\'');
+    // Super Admin: exclude owner-managed beach bookings (2, 7, 11)
+    const isAdmin = req.admin && req.admin.role === 'admin';
+    const ob = isAdmin ? 'AND beach_id NOT IN (2, 7, 11)' : '';
+    const obWhere = isAdmin ? 'WHERE beach_id NOT IN (2, 7, 11)' : '';
+
+    const { rows: totalRows } = await db.query(`SELECT COUNT(*) as total FROM bookings ${obWhere}`);
+    const { rows: pendingRows } = await db.query(`SELECT COUNT(*) as pending FROM bookings WHERE status = 'pending' ${ob}`);
+    const { rows: confirmedRows } = await db.query(`SELECT COUNT(*) as confirmed FROM bookings WHERE status = 'confirmed' ${ob}`);
+    const { rows: cancelledRows } = await db.query(`SELECT COUNT(*) as cancelled FROM bookings WHERE status = 'cancelled' ${ob}`);
+    const { rows: todayRows } = await db.query(`SELECT COUNT(*) as todayBookings FROM bookings WHERE visit_date = CURRENT_DATE ${ob}`);
+    const { rows: weekRows } = await db.query(`SELECT COUNT(*) as weekBookings FROM bookings WHERE visit_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' ${ob}`);
 
     res.json({
       total: parseInt(totalRows[0].total),
@@ -108,10 +121,14 @@ router.get('/stats', authMiddleware, async (req, res) => {
 router.get('/recent', authMiddleware, async (req, res) => {
   try {
     const limit = parseInt(req.query.limit) || 5;
+    // Super Admin: exclude owner-managed beach bookings (2, 7, 11)
+    const isAdmin = req.admin && req.admin.role === 'admin';
+    const ownerFilter = isAdmin ? 'WHERE bk.beach_id NOT IN (2, 7, 11)' : '';
     const { rows } = await db.query(
       `SELECT bk.*, b.name as beach_name
        FROM bookings bk
        LEFT JOIN beaches b ON bk.beach_id = b.id
+       ${ownerFilter}
        ORDER BY bk.created_at DESC
        LIMIT $1`,
       [limit]

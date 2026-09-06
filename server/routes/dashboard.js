@@ -3,23 +3,31 @@ const router = express.Router();
 const db = require('../config/db');
 const authMiddleware = require('../middleware/auth');
 
+// Owner-protected beach IDs - excluded from Super Admin dashboard
+const OWNER_BEACH_IDS = [2, 7, 11];
+
 // @route   GET /api/dashboard/stats
 // @desc    Get dashboard statistics
 // @access  Private (Admin)
 router.get('/stats', authMiddleware, async (req, res) => {
   try {
+    // Super Admin: exclude owner-managed beach bookings (2, 7, 11)
+    const isAdmin = req.admin && req.admin.role === 'admin';
+    const ob = isAdmin ? 'AND beach_id NOT IN (2, 7, 11)' : '';
+    const obWhere = isAdmin ? 'WHERE beach_id NOT IN (2, 7, 11)' : '';
+
     const { rows: beachRows } = await db.query('SELECT COUNT(*) as totalBeaches FROM beaches');
-    const { rows: reviewRows } = await db.query('SELECT COUNT(*) as totalReviews FROM reviews');
-    const { rows: bookingRows } = await db.query('SELECT COUNT(*) as totalBookings FROM bookings');
+    const { rows: reviewRows } = await db.query(`SELECT COUNT(*) as totalReviews FROM reviews ${obWhere}`);
+    const { rows: bookingRows } = await db.query(`SELECT COUNT(*) as totalBookings FROM bookings ${obWhere}`);
     const { rows: avgRows } = await db.query('SELECT AVG(rating) as avgRating FROM beaches');
-    const { rows: pendingRows } = await db.query("SELECT COUNT(*) as pendingBookings FROM bookings WHERE status = 'pending'");
-    const { rows: todayRows } = await db.query('SELECT COUNT(*) as todayBookings FROM bookings WHERE visit_date = CURRENT_DATE');
-    const { rows: yesterdayRows } = await db.query("SELECT COUNT(*) as yesterdayBookings FROM bookings WHERE visit_date = CURRENT_DATE - INTERVAL '1 day'");
-    const { rows: weekRows } = await db.query("SELECT COUNT(*) as weekBookings FROM bookings WHERE visit_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'");
-    const { rows: lastWeekRows } = await db.query("SELECT COUNT(*) as lastWeekBookings FROM bookings WHERE visit_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '7 days'");
-    const { rows: guestsRows } = await db.query("SELECT COALESCE(SUM(people), 0) as totalGuestsWeek FROM bookings WHERE status = 'confirmed' AND visit_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days'");
-    const { rows: lastGuestsRows } = await db.query("SELECT COALESCE(SUM(people), 0) as lastWeekGuests FROM bookings WHERE status = 'confirmed' AND visit_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '7 days'");
-    const { rows: lastPendingRows } = await db.query("SELECT COUNT(*) as lastWeekPending FROM bookings WHERE status = 'pending' AND visit_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '7 days'");
+    const { rows: pendingRows } = await db.query(`SELECT COUNT(*) as pendingBookings FROM bookings WHERE status = 'pending' ${ob}`);
+    const { rows: todayRows } = await db.query(`SELECT COUNT(*) as todayBookings FROM bookings WHERE visit_date = CURRENT_DATE ${ob}`);
+    const { rows: yesterdayRows } = await db.query(`SELECT COUNT(*) as yesterdayBookings FROM bookings WHERE visit_date = CURRENT_DATE - INTERVAL '1 day' ${ob}`);
+    const { rows: weekRows } = await db.query(`SELECT COUNT(*) as weekBookings FROM bookings WHERE visit_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' ${ob}`);
+    const { rows: lastWeekRows } = await db.query(`SELECT COUNT(*) as lastWeekBookings FROM bookings WHERE visit_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '7 days' ${ob}`);
+    const { rows: guestsRows } = await db.query(`SELECT COALESCE(SUM(people), 0) as totalGuestsWeek FROM bookings WHERE status = 'confirmed' AND visit_date BETWEEN CURRENT_DATE AND CURRENT_DATE + INTERVAL '7 days' ${ob}`);
+    const { rows: lastGuestsRows } = await db.query(`SELECT COALESCE(SUM(people), 0) as lastWeekGuests FROM bookings WHERE status = 'confirmed' AND visit_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '7 days' ${ob}`);
+    const { rows: lastPendingRows } = await db.query(`SELECT COUNT(*) as lastWeekPending FROM bookings WHERE status = 'pending' AND visit_date BETWEEN CURRENT_DATE - INTERVAL '14 days' AND CURRENT_DATE - INTERVAL '7 days' ${ob}`);
 
     res.json({
       totalBeaches: parseInt(beachRows[0].totalbeaches),
@@ -80,10 +88,13 @@ router.get('/recent-reviews', authMiddleware, async (req, res) => {
 // @access  Private (Admin)
 router.get('/recent-bookings', authMiddleware, async (req, res) => {
   try {
+    const isAdmin = req.admin && req.admin.role === 'admin';
+    const obFilter = isAdmin ? 'WHERE bk.beach_id NOT IN (2, 7, 11)' : '';
     const { rows } = await db.query(
       `SELECT bk.*, b.name as beach_name
        FROM bookings bk
        LEFT JOIN beaches b ON bk.beach_id = b.id
+       ${obFilter}
        ORDER BY bk.created_at DESC
        LIMIT 5`
     );
@@ -99,10 +110,13 @@ router.get('/recent-bookings', authMiddleware, async (req, res) => {
 // @access  Private (Admin)
 router.get('/booking-trend', authMiddleware, async (req, res) => {
   try {
+    const isAdmin = req.admin && req.admin.role === 'admin';
+    const obFilter = isAdmin ? 'AND beach_id NOT IN (2, 7, 11)' : '';
     const { rows } = await db.query(`
       SELECT visit_date as date, COUNT(*) as count
       FROM bookings
       WHERE visit_date BETWEEN CURRENT_DATE - INTERVAL '6 days' AND CURRENT_DATE
+      ${obFilter}
       GROUP BY visit_date
       ORDER BY date ASC
     `);
@@ -136,10 +150,15 @@ router.get('/booking-trend', authMiddleware, async (req, res) => {
 // @access  Private (Admin)
 router.get('/activity', authMiddleware, async (req, res) => {
   try {
+    const isAdmin = req.admin && req.admin.role === 'admin';
+    const obFilter = isAdmin ? 'WHERE bk.beach_id NOT IN (2, 7, 11)' : '';
+    const obReviewFilter = isAdmin ? 'WHERE r.beach_id NOT IN (2, 7, 11)' : '';
+
     // Get recent bookings
     const { rows: bookings } = await db.query(`
       SELECT 'booking' as type, bk.id, full_name as who, booking_ref as ref, status, visit_date as date, created_at
       FROM bookings bk
+      ${obFilter}
       ORDER BY created_at DESC
       LIMIT 4
     `);
@@ -149,6 +168,7 @@ router.get('/activity', authMiddleware, async (req, res) => {
       SELECT 'review' as type, r.id, r.author as who, r.rating, r.created_at, b.name as beach_name
       FROM reviews r
       LEFT JOIN beaches b ON r.beach_id = b.id
+      ${obReviewFilter}
       ORDER BY r.created_at DESC
       LIMIT 4
     `);
