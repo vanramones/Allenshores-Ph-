@@ -10,12 +10,27 @@ import { ownerAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Loading from '../../components/common/Loading';
 
-const OwnerDashboard = () => {
+// Default theme (will be overridden by props from OwnerLayout)
+const defaultTheme = {
+  name: 'sunrise',
+  primary: '#0f766e',
+  primaryDark: '#134e4a',
+  primaryLight: '#14b8a6',
+  gradient: 'linear-gradient(180deg, #0f766e 0%, #134e4a 100%)',
+  welcomeGradient: 'linear-gradient(135deg, #0f766e 0%, #134e4a 100%)',
+  shadow: 'rgba(15, 118, 110, 0.3)',
+  accent: '#d1fae5'
+};
+
+const OwnerDashboard = ({ theme: propTheme }) => {
   const { owner } = useAuth();
   const [stats, setStats] = useState(null);
   const [recentBookings, setRecentBookings] = useState([]);
   const [trend, setTrend] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Use theme from props or default
+  const theme = propTheme || defaultTheme;
 
   useEffect(() => {
     fetchDashboard();
@@ -47,9 +62,9 @@ const OwnerDashboard = () => {
   const confirmationRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0;
 
   return (
-    <div className="owner-dashboard fade-in">
+    <div className={`owner-dashboard fade-in owner-theme-${theme.name}`}>
       {/* Welcome Header */}
-      <div className="owner-welcome-card mb-4">
+      <div className="owner-welcome-card mb-4" style={{ background: theme.welcomeGradient, boxShadow: `0 10px 40px ${theme.shadow}` }}>
         <Row className="align-items-center">
           <Col md={8}>
             <div className="d-flex align-items-center mb-3">
@@ -171,7 +186,7 @@ const OwnerDashboard = () => {
               <div className="d-flex justify-content-between align-items-center">
                 <div>
                   <h5 className="mb-1">
-                    <FaChartLine className="me-2" style={{ color: '#0f766e' }} />
+                    <FaChartLine className="me-2" style={{ color: theme.primary }} />
                     Booking Trend
                   </h5>
                   <small className="text-muted">Last 7 days performance</small>
@@ -190,9 +205,10 @@ const OwnerDashboard = () => {
                         className="owner-chart-bar"
                         style={{
                           height: `${Math.max((day.count / maxTrend) * 100, 5)}%`,
+                          background: `linear-gradient(180deg, ${theme.primary} 0%, ${theme.primaryLight} 100%)`
                         }}
                       >
-                        <span className="owner-chart-bar-value">{day.count}</span>
+                        <span className="owner-chart-bar-value" style={{ color: theme.primary, background: theme.accent }}>{day.count}</span>
                       </div>
                     </div>
                     <span className="owner-chart-bar-label">{day.label}</span>
@@ -208,7 +224,7 @@ const OwnerDashboard = () => {
           <Card className="owner-performance-card h-100">
             <Card.Header className="owner-card-header">
               <h5 className="mb-0">
-                <FaChartBar className="me-2" style={{ color: '#0f766e' }} />
+                <FaChartBar className="me-2" style={{ color: theme.primary }} />
                 Performance
               </h5>
             </Card.Header>
@@ -252,13 +268,13 @@ const OwnerDashboard = () => {
               <hr className="my-4" />
 
               <div className="owner-quick-actions">
-                <Link to="/owner/beach" className="owner-quick-action-btn">
+                <Link to="/owner/beach" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
                   <FaUmbrellaBeach className="me-2" /> Edit Beach Info
                 </Link>
-                <Link to="/owner/reviews" className="owner-quick-action-btn">
+                <Link to="/owner/reviews" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
                   <FaStar className="me-2" /> View Reviews
                 </Link>
-                <Link to="/owner/reports" className="owner-quick-action-btn">
+                <Link to="/owner/reports" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
                   <FaChartLine className="me-2" /> View Reports
                 </Link>
               </div>
@@ -273,13 +289,13 @@ const OwnerDashboard = () => {
           <div className="d-flex justify-content-between align-items-center">
             <div>
               <h5 className="mb-1">
-                <FaCalendarCheck className="me-2" style={{ color: '#0f766e' }} />
+                <FaCalendarCheck className="me-2" style={{ color: theme.primary }} />
                 Recent Bookings
               </h5>
               <small className="text-muted">Latest guest reservations</small>
             </div>
             <Link to="/owner/bookings">
-              <Button variant="outline-primary" size="sm">
+              <Button variant="outline-primary" size="sm" style={{ borderColor: theme.primary, color: theme.primary }}>
                 View All <FaArrowRight className="ms-1" />
               </Button>
             </Link>
@@ -309,7 +325,7 @@ const OwnerDashboard = () => {
                   <tr key={booking.id}>
                     <td>
                       <div className="owner-guest-info">
-                        <div className="owner-guest-avatar">
+                        <div className="owner-guest-avatar" style={{ background: `linear-gradient(135deg, ${theme.primary} 0%, ${theme.primaryLight} 100%)` }}>
                           {booking.full_name.charAt(0).toUpperCase()}
                         </div>
                         <div>

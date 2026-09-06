@@ -8,6 +8,46 @@ import {
 import { useAuth } from '../../context/AuthContext';
 import { ownerAPI } from '../../services/api';
 
+// Color themes for each beach owner
+const ownerThemes = {
+  // Sunrise Beach - Teal/Green
+  2: {
+    name: 'sunrise',
+    primary: '#0f766e',
+    primaryDark: '#134e4a',
+    primaryLight: '#14b8a6',
+    gradient: 'linear-gradient(180deg, #0f766e 0%, #134e4a 100%)',
+    welcomeGradient: 'linear-gradient(135deg, #0f766e 0%, #134e4a 100%)',
+    shadow: 'rgba(15, 118, 110, 0.3)',
+    accent: '#d1fae5'
+  },
+  // Caba Villa Diaz - Orange/Sunset
+  7: {
+    name: 'cabavilla',
+    primary: '#ea580c',
+    primaryDark: '#9a3412',
+    primaryLight: '#fb923c',
+    gradient: 'linear-gradient(180deg, #ea580c 0%, #9a3412 100%)',
+    welcomeGradient: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
+    shadow: 'rgba(234, 88, 12, 0.3)',
+    accent: '#ffedd5'
+  },
+  // Tonying Beach - Blue/Ocean
+  11: {
+    name: 'tonying',
+    primary: '#0369a1',
+    primaryDark: '#0c4a6e',
+    primaryLight: '#0ea5e9',
+    gradient: 'linear-gradient(180deg, #0369a1 0%, #0c4a6e 100%)',
+    welcomeGradient: 'linear-gradient(135deg, #0369a1 0%, #075985 100%)',
+    shadow: 'rgba(3, 105, 161, 0.3)',
+    accent: '#e0f2fe'
+  }
+};
+
+// Default theme (teal)
+const defaultTheme = ownerThemes[2];
+
 const OwnerLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [pendingCount, setPendingCount] = useState(0);
@@ -48,8 +88,11 @@ const OwnerLayout = ({ children }) => {
     return navItems.find(item => item.path === location.pathname)?.label || 'Owner';
   };
 
+  // Get theme based on owner's beach_id
+  const theme = ownerThemes[owner?.beach_id] || defaultTheme;
+
   return (
-    <div className="admin-layout d-flex">
+    <div className={`admin-layout d-flex owner-theme-${theme.name}`} data-theme={theme.name}>
       {/* Mobile Overlay */}
       <div
         className={`admin-sidebar-overlay ${sidebarOpen ? 'show' : ''}`}
@@ -57,18 +100,19 @@ const OwnerLayout = ({ children }) => {
       />
 
       {/* Sidebar - Desktop */}
-      <aside className="admin-sidebar d-none d-lg-flex" style={{ background: 'linear-gradient(180deg, #0f766e 0%, #134e4a 100%)' }}>
+      <aside className="admin-sidebar d-none d-lg-flex" style={{ background: theme.gradient }}>
         <SidebarContent
           navItems={navItems}
           location={location}
           onLogout={handleLogout}
           owner={owner}
           pendingCount={pendingCount}
+          theme={theme}
         />
       </aside>
 
       {/* Sidebar - Mobile */}
-      <aside className={`admin-sidebar admin-sidebar-mobile d-lg-none ${sidebarOpen ? 'open' : ''}`} style={{ background: 'linear-gradient(180deg, #0f766e 0%, #134e4a 100%)' }}>
+      <aside className={`admin-sidebar admin-sidebar-mobile d-lg-none ${sidebarOpen ? 'open' : ''}`} style={{ background: theme.gradient }}>
         <SidebarContent
           navItems={navItems}
           location={location}
@@ -76,6 +120,7 @@ const OwnerLayout = ({ children }) => {
           owner={owner}
           onClose={() => setSidebarOpen(false)}
           pendingCount={pendingCount}
+          theme={theme}
         />
       </aside>
 
@@ -135,7 +180,7 @@ const OwnerLayout = ({ children }) => {
                 variant="light"
                 className="admin-user-toggle"
               >
-                <div className="admin-user-avatar" style={{ background: '#0f766e' }}>
+                <div className="admin-user-avatar" style={{ background: theme.primary }}>
                   {owner?.username?.charAt(0).toUpperCase() || 'O'}
                 </div>
                 <span className="admin-user-name d-none d-md-inline">{owner?.username || 'Owner'}</span>
@@ -149,16 +194,20 @@ const OwnerLayout = ({ children }) => {
           </div>
         </header>
 
-        {/* Page Content */}
+        {/* Page Content - Pass theme to children */}
         <div className="admin-content p-4">
-          {children}
+          {React.Children.map(children, child =>
+            React.isValidElement(child)
+              ? React.cloneElement(child, { theme })
+              : child
+          )}
         </div>
       </main>
     </div>
   );
 };
 
-const SidebarContent = ({ navItems, location, onLogout, owner, onClose, pendingCount }) => (
+const SidebarContent = ({ navItems, location, onLogout, owner, onClose, pendingCount, theme }) => (
   <div className="admin-sidebar-inner d-flex flex-column h-100">
     {/* Brand */}
     <div className="admin-sidebar-brand">
@@ -211,7 +260,7 @@ const SidebarContent = ({ navItems, location, onLogout, owner, onClose, pendingC
     {/* User Profile */}
     <div className="admin-sidebar-user">
       <div className="admin-sidebar-user-info">
-        <div className="admin-sidebar-avatar" style={{ background: '#0f766e' }}>
+        <div className="admin-sidebar-avatar" style={{ background: theme?.primaryLight || '#14b8a6' }}>
           {owner?.username?.charAt(0).toUpperCase() || 'O'}
         </div>
         <div className="admin-sidebar-user-text">
