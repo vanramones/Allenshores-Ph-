@@ -35,6 +35,7 @@ import AdminReports from './admin/pages/AdminReports';
 import OwnerDashboard from './admin/pages/OwnerDashboard';
 import OwnerBookings from './admin/pages/OwnerBookings';
 import OwnerReviews from './admin/pages/OwnerReviews';
+import OwnerReports from './admin/pages/OwnerReports';
 
 // Protected Route Component (Admin)
 const ProtectedRoute = ({ children }) => {
@@ -119,6 +120,7 @@ function App() {
             <Route path="/owner/dashboard" element={<OwnerRoute><OwnerDashboard /></OwnerRoute>} />
             <Route path="/owner/bookings" element={<OwnerRoute><OwnerBookings /></OwnerRoute>} />
             <Route path="/owner/reviews" element={<OwnerRoute><OwnerReviews /></OwnerRoute>} />
+            <Route path="/owner/reports" element={<OwnerRoute><OwnerReports /></OwnerRoute>} />
 
             {/* 404 */}
             <Route path="*" element={

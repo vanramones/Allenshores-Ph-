@@ -306,4 +306,228 @@ router.get('/booking-trend', async (req, res) => {
   }
 });
 
+// ═══════════════════════════════════════════════════════════
+// REPORTS (filtered by owner's beach_id)
+// ═══════════════════════════════════════════════════════════
+
+// @route   GET /api/owner/reports/summary
+// @desc    Get summary report for owner's beach
+// @access  Private (Owner)
+router.get('/reports/summary', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { from_date, to_date } = req.query;
+
+    let dateCondition = '';
+    let reviewCondition = '';
+    let params = [];
+    let paramIdx = 1;
+
+    if (from_date && to_date) {
+      dateCondition = `AND visit_date BETWEEN $${paramIdx} AND $${paramIdx + 1}`;
+      reviewCondition = `AND created_at BETWEEN $${paramIdx} AND $${paramIdx + 1}`;
+      params = [from_date, to_date];
+      paramIdx += 2;
+    }
+
+    const { rows: reviewRows } = await db.query(
+      `SELECT COUNT(*) as totalReviews FROM reviews WHERE beach_id = $1 ${reviewCondition}`,
+      [beachId, ...params]
+    );
+    const { rows: bookingRows } = await db.query(
+      `SELECT COUNT(*) as totalBookings FROM bookings WHERE beach_id = $1 ${dateCondition}`,
+      [beachId, ...params]
+    );
+    const { rows: confirmedRows } = await db.query(
+      `SELECT COUNT(*) as confirmedBookings FROM bookings WHERE beach_id = $1 ${dateCondition} AND status = 'confirmed'`,
+      [beachId, ...params]
+    );
+    const { rows: pendingRows } = await db.query(
+      `SELECT COUNT(*) as pendingBookings FROM bookings WHERE beach_id = $1 ${dateCondition} AND status = 'pending'`,
+      [beachId, ...params]
+    );
+    const { rows: cancelledRows } = await db.query(
+      `SELECT COUNT(*) as cancelledBookings FROM bookings WHERE beach_id = $1 ${dateCondition} AND status = 'cancelled'`,
+      [beachId, ...params]
+    );
+    const { rows: guestsRows } = await db.query(
+      `SELECT COALESCE(SUM(people), 0) as totalGuests FROM bookings WHERE beach_id = $1 ${dateCondition} AND status = 'confirmed'`,
+      [beachId, ...params]
+    );
+    const { rows: avgRows } = await db.query(
+      `SELECT AVG(rating) as avgRating FROM reviews WHERE beach_id = $1 ${reviewCondition}`,
+      [beachId, ...params]
+    );
+    const { rows: beachRows } = await db.query('SELECT name, location, price FROM beaches WHERE id = $1', [beachId]);
+
+    res.json({
+      beach: beachRows[0] || null,
+      totalReviews: parseInt(reviewRows[0].totalreviews),
+      totalBookings: parseInt(bookingRows[0].totalbookings),
+      confirmedBookings: parseInt(confirmedRows[0].confirmedbookings),
+      pendingBookings: parseInt(pendingRows[0].pendingbookings),
+      cancelledBookings: parseInt(cancelledRows[0].cancelledbookings),
+      totalGuests: parseInt(guestsRows[0].totalguests) || 0,
+      avgRating: avgRows[0].avgrating ? parseFloat(avgRows[0].avgrating).toFixed(1) : 0,
+      dateRange: from_date && to_date ? { from: from_date, to: to_date } : null
+    });
+  } catch (err) {
+    console.error('Owner summary report error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/owner/reports/bookings
+// @desc    Get detailed bookings report for owner's beach
+// @access  Private (Owner)
+router.get('/reports/bookings', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { from_date, to_date, status } = req.query;
+
+    let conditions = [`bk.beach_id = $1`];
+    let params = [beachId];
+    let paramIdx = 2;
+
+    if (from_date && to_date) {
+      conditions.push(`bk.visit_date BETWEEN $${paramIdx} AND $${paramIdx + 1}`);
+      params.push(from_date, to_date);
+      paramIdx += 2;
+    }
+    if (status) {
+      conditions.push(`bk.status = $${paramIdx}`);
+      params.push(status);
+      paramIdx++;
+    }
+
+    const whereClause = 'WHERE ' + conditions.join(' AND ');
+
+    const { rows: bookings } = await db.query(`
+      SELECT bk.*, b.name as beach_name
+      FROM bookings bk
+      LEFT JOIN beaches b ON bk.beach_id = b.id
+      ${whereClause}
+      ORDER BY bk.visit_date DESC
+    `, params);
+
+    const stats = {
+      total: bookings.length,
+      confirmed: bookings.filter(b => b.status === 'confirmed').length,
+      pending: bookings.filter(b => b.status === 'pending').length,
+      cancelled: bookings.filter(b => b.status === 'cancelled').length,
+      totalGuests: bookings.filter(b => b.status === 'confirmed').reduce((sum, b) => sum + b.people, 0)
+    };
+
+    res.json({ bookings, stats });
+  } catch (err) {
+    console.error('Owner bookings report error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/owner/reports/monthly
+// @desc    Get monthly booking statistics for owner's beach
+// @access  Private (Owner)
+router.get('/reports/monthly', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { year } = req.query;
+    const selectedYear = year || new Date().getFullYear();
+
+    const { rows: monthly } = await db.query(`
+      SELECT
+        EXTRACT(MONTH FROM visit_date) as month,
+        COUNT(*) as total_bookings,
+        SUM(CASE WHEN status = 'confirmed' THEN 1 ELSE 0 END) as confirmed,
+        SUM(CASE WHEN status = 'pending' THEN 1 ELSE 0 END) as pending,
+        SUM(CASE WHEN status = 'cancelled' THEN 1 ELSE 0 END) as cancelled,
+        COALESCE(SUM(CASE WHEN status = 'confirmed' THEN people ELSE 0 END), 0) as total_guests
+      FROM bookings
+      WHERE beach_id = $1 AND EXTRACT(YEAR FROM visit_date) = $2
+      GROUP BY EXTRACT(MONTH FROM visit_date)
+      ORDER BY month ASC
+    `, [beachId, selectedYear]);
+
+    const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+    const result = months.map((name, index) => {
+      const found = monthly.find(m => parseInt(m.month) === index + 1);
+      return {
+        month: index + 1,
+        name,
+        total_bookings: found ? parseInt(found.total_bookings) : 0,
+        confirmed: found ? parseInt(found.confirmed) : 0,
+        pending: found ? parseInt(found.pending) : 0,
+        cancelled: found ? parseInt(found.cancelled) : 0,
+        total_guests: found ? parseInt(found.total_guests) : 0
+      };
+    });
+
+    res.json({ year: parseInt(selectedYear), beach_id: beachId, data: result });
+  } catch (err) {
+    console.error('Owner monthly report error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   GET /api/owner/reports/reviews
+// @desc    Get reviews report for owner's beach
+// @access  Private (Owner)
+router.get('/reports/reviews', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { from_date, to_date } = req.query;
+
+    let dateFilter = '';
+    let params = [beachId];
+
+    if (from_date && to_date) {
+      dateFilter = `AND r.created_at BETWEEN $2 AND $3`;
+      params.push(from_date, `${to_date} 23:59:59`);
+    }
+
+    const { rows: reviews } = await db.query(`
+      SELECT r.*, b.name as beach_name
+      FROM reviews r
+      LEFT JOIN beaches b ON r.beach_id = b.id
+      WHERE r.beach_id = $1 ${dateFilter}
+      ORDER BY r.created_at DESC
+    `, params);
+
+    const ratingDist = [5, 4, 3, 2, 1].map(rating => ({
+      rating,
+      count: reviews.filter(r => r.rating === rating).length
+    }));
+
+    res.json({
+      reviews,
+      stats: {
+        total: reviews.length,
+        avgRating: reviews.length > 0
+          ? (reviews.reduce((sum, r) => sum + parseFloat(r.rating), 0) / reviews.length).toFixed(1)
+          : 0,
+        ratingDistribution: ratingDist
+      }
+    });
+  } catch (err) {
+    console.error('Owner reviews report error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 module.exports = router;

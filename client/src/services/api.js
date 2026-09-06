@@ -142,7 +142,12 @@ export const ownerAPI = {
   getReviews: () => api.get('/owner/reviews'),
   deleteReview: (id) => api.delete(`/owner/reviews/${id}`),
   getRecentBookings: () => api.get('/owner/recent-bookings'),
-  getBookingTrend: () => api.get('/owner/booking-trend')
+  getBookingTrend: () => api.get('/owner/booking-trend'),
+  // Reports
+  getReportSummary: (params) => api.get('/owner/reports/summary', { params }),
+  getReportBookings: (params) => api.get('/owner/reports/bookings', { params }),
+  getReportMonthly: (params) => api.get('/owner/reports/monthly', { params }),
+  getReportReviews: (params) => api.get('/owner/reports/reviews', { params })
 };
 
 export default api;

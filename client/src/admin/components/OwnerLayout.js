@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Nav, Button, Dropdown } from 'react-bootstrap';
 import {
-  FaTachometerAlt, FaCalendarCheck, FaStar,
+  FaTachometerAlt, FaCalendarCheck, FaStar, FaFileAlt,
   FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaUmbrellaBeach
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
@@ -21,7 +21,8 @@ const OwnerLayout = ({ children }) => {
   const navItems = [
     { path: '/owner/dashboard', icon: <FaTachometerAlt />, label: 'Dashboard' },
     { path: '/owner/bookings', icon: <FaCalendarCheck />, label: 'Bookings' },
-    { path: '/owner/reviews', icon: <FaStar />, label: 'Reviews' }
+    { path: '/owner/reviews', icon: <FaStar />, label: 'Reviews' },
+    { path: '/owner/reports', icon: <FaFileAlt />, label: 'Reports' }
   ];
 
   const getPageTitle = () => {
