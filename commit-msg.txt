@@ -1,1 +1,0 @@
-Add booking notification emails to beach owners and owner-to-guest email feature
