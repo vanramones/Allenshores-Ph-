@@ -10,11 +10,24 @@ const api = axios.create({
   }
 });
 
-// Add token to requests if available (check both admin and owner tokens)
+// Add token to requests if available
+// Use adminToken for /admin routes, ownerToken for /owner routes
 api.interceptors.request.use((config) => {
   const adminToken = localStorage.getItem('adminToken');
   const ownerToken = localStorage.getItem('ownerToken');
-  const token = ownerToken || adminToken;
+  const path = window.location.pathname;
+  
+  // Determine which token to use based on current route
+  let token;
+  if (path.startsWith('/owner')) {
+    token = ownerToken;
+  } else if (path.startsWith('/admin')) {
+    token = adminToken;
+  } else {
+    // For public routes, prefer admin token if available
+    token = adminToken || ownerToken;
+  }
+  
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
