@@ -12,6 +12,7 @@ const bookmarkRoutes = require('./routes/bookmarks');
 const adminRoutes = require('./routes/admins');
 const dashboardRoutes = require('./routes/dashboard');
 const reportsRoutes = require('./routes/reports');
+const ownerRoutes = require('./routes/owner');
 
 const app = express();
 
@@ -34,6 +35,7 @@ app.use('/api/bookmarks', bookmarkRoutes);
 app.use('/api/admins', adminRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/reports', reportsRoutes);
+app.use('/api/owner', ownerRoutes);
 
 // Health check
 app.get('/api/health', (req, res) => {

@@ -11,6 +11,7 @@ import { CompareProvider } from './context/CompareContext';
 import Navbar from './components/common/Navbar';
 import Footer from './components/common/Footer';
 import AdminLayout from './admin/components/AdminLayout';
+import OwnerLayout from './admin/components/OwnerLayout';
 
 // Public/User Pages
 import Home from './user/pages/Home';
@@ -30,10 +31,15 @@ import AdminReviews from './admin/pages/AdminReviews';
 import AdminAccounts from './admin/pages/AdminAccounts';
 import AdminReports from './admin/pages/AdminReports';
 
-// Protected Route Component
+// Owner Pages
+import OwnerDashboard from './admin/pages/OwnerDashboard';
+import OwnerBookings from './admin/pages/OwnerBookings';
+import OwnerReviews from './admin/pages/OwnerReviews';
+
+// Protected Route Component (Admin)
 const ProtectedRoute = ({ children }) => {
-  const { isAuthenticated, loading } = useAuth();
-  
+  const { isAuthenticated, isAdmin, loading } = useAuth();
+
   if (loading) {
     return (
       <div className="min-vh-100 d-flex align-items-center justify-content-center">
@@ -43,12 +49,33 @@ const ProtectedRoute = ({ children }) => {
       </div>
     );
   }
-  
-  if (!isAuthenticated) {
+
+  if (!isAuthenticated || !isAdmin) {
     return <Navigate to="/admin/login" replace />;
   }
-  
+
   return <AdminLayout>{children}</AdminLayout>;
+};
+
+// Protected Route Component (Owner)
+const OwnerRoute = ({ children }) => {
+  const { isOwner, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-vh-100 d-flex align-items-center justify-content-center">
+        <div className="spinner-border text-primary" role="status">
+          <span className="visually-hidden">Loading...</span>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isOwner) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
+  return <OwnerLayout>{children}</OwnerLayout>;
 };
 
 // Public Layout Component
@@ -86,6 +113,12 @@ function App() {
             <Route path="/admin/reviews" element={<ProtectedRoute><AdminReviews /></ProtectedRoute>} />
             <Route path="/admin/admins" element={<ProtectedRoute><AdminAccounts /></ProtectedRoute>} />
             <Route path="/admin/reports" element={<ProtectedRoute><AdminReports /></ProtectedRoute>} />
+
+            {/* Owner Routes */}
+            <Route path="/owner" element={<Navigate to="/owner/dashboard" replace />} />
+            <Route path="/owner/dashboard" element={<OwnerRoute><OwnerDashboard /></OwnerRoute>} />
+            <Route path="/owner/bookings" element={<OwnerRoute><OwnerBookings /></OwnerRoute>} />
+            <Route path="/owner/reviews" element={<OwnerRoute><OwnerReviews /></OwnerRoute>} />
 
             {/* 404 */}
             <Route path="*" element={

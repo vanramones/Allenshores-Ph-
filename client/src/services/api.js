@@ -39,7 +39,9 @@ api.interceptors.response.use(
 // ═══════════════════════════════════════════════════════════
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
-  verify: () => api.get('/auth/verify')
+  ownerLogin: (credentials) => api.post('/auth/owner-login', credentials),
+  verify: () => api.get('/auth/verify'),
+  getOwnerBeaches: () => api.get('/auth/owner-beaches')
 };
 
 // ═══════════════════════════════════════════════════════════
@@ -126,6 +128,21 @@ export const reportsAPI = {
   getBeaches: (params) => api.get('/reports/beaches', { params }),
   getMonthly: (params) => api.get('/reports/monthly', { params }),
   getReviews: (params) => api.get('/reports/reviews', { params })
+};
+
+// ═══════════════════════════════════════════════════════════
+// Beach Owner API
+// ═══════════════════════════════════════════════════════════
+export const ownerAPI = {
+  getDashboard: () => api.get('/owner/dashboard'),
+  getBeach: () => api.get('/owner/beach'),
+  getBookings: (params) => api.get('/owner/bookings', { params }),
+  updateBookingStatus: (id, status) => api.put(`/owner/bookings/${id}/status`, { status }),
+  deleteBooking: (id) => api.delete(`/owner/bookings/${id}`),
+  getReviews: () => api.get('/owner/reviews'),
+  deleteReview: (id) => api.delete(`/owner/reviews/${id}`),
+  getRecentBookings: () => api.get('/owner/recent-bookings'),
+  getBookingTrend: () => api.get('/owner/booking-trend')
 };
 
 export default api;
