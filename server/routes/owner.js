@@ -167,7 +167,62 @@ router.put('/bookings/:id/status', async (req, res) => {
       [req.params.id]
     );
 
-    res.json(rows[0]);
+    const booking = rows[0];
+    const logo = getLogoDataUri();
+
+    // Send email notification to guest when owner confirms or cancels
+    try {
+      if (status === 'confirmed') {
+        await sendEmail({
+          to: booking.email,
+          subject: `Booking Confirmed - ${booking.booking_ref} - ${booking.beach_name}`,
+          text: `Hi ${booking.full_name},\n\nYour booking at ${booking.beach_name} on ${booking.visit_date} for ${booking.people} guest(s) has been CONFIRMED.\n\nReference: ${booking.booking_ref}\n\nThank you!\nAllenShores PH`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #d1fae5; margin-bottom: 20px;">
+                ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
+                <h1 style="color: #0f766e; margin: 10px 0 0; font-size: 24px;">AllenShores PH</h1>
+              </div>
+              <h2 style="color: #0f766e;">Booking Confirmed</h2>
+              <p>Hi <strong>${booking.full_name}</strong>,</p>
+              <p>Your booking at <strong>${booking.beach_name}</strong> has been <span style="color: green;"><strong>CONFIRMED</strong></span>.</p>
+              <ul>
+                <li><strong>Reference:</strong> ${booking.booking_ref}</li>
+                <li><strong>Visit Date:</strong> ${booking.visit_date}</li>
+                <li><strong>Guests:</strong> ${booking.people}</li>
+              </ul>
+              <p>Thank you!<br/>AllenShores PH</p>
+            </div>
+          `
+        });
+      } else if (status === 'cancelled') {
+        await sendEmail({
+          to: booking.email,
+          subject: `Booking Cancelled - ${booking.booking_ref} - ${booking.beach_name}`,
+          text: `Hi ${booking.full_name},\n\nWe regret to inform you that your booking at ${booking.beach_name} on ${booking.visit_date} has been CANCELLED.\n\nReference: ${booking.booking_ref}\n\nFor inquiries, please contact us.\nAllenShores PH`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #d1fae5; margin-bottom: 20px;">
+                ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
+                <h1 style="color: #0f766e; margin: 10px 0 0; font-size: 24px;">AllenShores PH</h1>
+              </div>
+              <h2 style="color: #dc2626;">Booking Cancelled</h2>
+              <p>Hi <strong>${booking.full_name}</strong>,</p>
+              <p>We regret to inform you that your booking at <strong>${booking.beach_name}</strong> has been <span style="color: red;"><strong>CANCELLED</strong></span>.</p>
+              <ul>
+                <li><strong>Reference:</strong> ${booking.booking_ref}</li>
+                <li><strong>Visit Date:</strong> ${booking.visit_date}</li>
+              </ul>
+              <p>For inquiries, please contact us.<br/>AllenShores PH</p>
+            </div>
+          `
+        });
+      }
+    } catch (emailErr) {
+      console.error('Failed to send booking status email:', emailErr.message);
+    }
+
+    res.json(booking);
   } catch (err) {
     console.error('Owner update booking error:', err);
     res.status(500).json({ message: 'Server error' });
