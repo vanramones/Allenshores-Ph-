@@ -1,0 +1,1 @@
+Re-enable super admin beach CRUD except owner-protected beaches (IDs 2, 7, 11)
