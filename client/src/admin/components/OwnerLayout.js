@@ -10,20 +10,9 @@ import { ownerAPI } from '../../services/api';
 
 // Color themes for each beach owner
 const ownerThemes = {
-  // Sunrise Beach - Teal/Green
+  // Sunrise Beach - Orange/Sunset
   2: {
     name: 'sunrise',
-    primary: '#0f766e',
-    primaryDark: '#134e4a',
-    primaryLight: '#14b8a6',
-    gradient: 'linear-gradient(180deg, #0f766e 0%, #134e4a 100%)',
-    welcomeGradient: 'linear-gradient(135deg, #0f766e 0%, #134e4a 100%)',
-    shadow: 'rgba(15, 118, 110, 0.3)',
-    accent: '#d1fae5'
-  },
-  // Caba Villa Diaz - Orange/Sunset
-  7: {
-    name: 'cabavilla',
     primary: '#ea580c',
     primaryDark: '#9a3412',
     primaryLight: '#fb923c',
@@ -31,6 +20,17 @@ const ownerThemes = {
     welcomeGradient: 'linear-gradient(135deg, #ea580c 0%, #c2410c 100%)',
     shadow: 'rgba(234, 88, 12, 0.3)',
     accent: '#ffedd5'
+  },
+  // Caba Villa Diaz - Teal/Green
+  7: {
+    name: 'cabavilla',
+    primary: '#0f766e',
+    primaryDark: '#134e4a',
+    primaryLight: '#14b8a6',
+    gradient: 'linear-gradient(180deg, #0f766e 0%, #134e4a 100%)',
+    welcomeGradient: 'linear-gradient(135deg, #0f766e 0%, #134e4a 100%)',
+    shadow: 'rgba(15, 118, 110, 0.3)',
+    accent: '#d1fae5'
   },
   // Tonying Beach - Blue/Ocean
   11: {
@@ -45,7 +45,7 @@ const ownerThemes = {
   }
 };
 
-// Default theme (teal)
+// Default theme (orange for sunrise)
 const defaultTheme = ownerThemes[2];
 
 const OwnerLayout = ({ children }) => {
