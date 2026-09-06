@@ -8,7 +8,7 @@ const Login = () => {
   const navigate = useNavigate();
   const { login, ownerLogin } = useAuth();
 
-  // Admin login state
+  // Super Admin login state
   const [credentials, setCredentials] = useState({ username: '', password: '' });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
@@ -118,7 +118,7 @@ const Login = () => {
           </div>
         </div>
         <div className="admin-login-left-footer">
-          © {new Date().getFullYear()} AllenShores PH {loginMode === 'admin' ? 'Admin' : 'Owner'}. All rights reserved.
+          © {new Date().getFullYear()} AllenShores PH {loginMode === 'admin' ? 'Super Admin' : 'Owner'}. All rights reserved.
         </div>
       </div>
 
@@ -130,7 +130,7 @@ const Login = () => {
               {loginMode === 'admin' ? <FaShieldAlt /> : <FaUmbrellaBeach />}
             </div>
             <h2 className="admin-login-form-title">
-              {loginMode === 'admin' ? 'Admin Login' : 'Beach Owner Login'}
+              {loginMode === 'admin' ? 'Super Admin Login' : 'Beach Owner Login'}
             </h2>
             <p className="admin-login-form-subtitle">
               {loginMode === 'admin'
@@ -147,7 +147,7 @@ const Login = () => {
               onClick={() => { setLoginMode('admin'); setError(''); setOwnerError(''); }}
             >
               <FaShieldAlt className="me-2" />
-              Admin
+              Super Admin
             </button>
             <button
               type="button"
@@ -159,7 +159,7 @@ const Login = () => {
             </button>
           </div>
 
-          {/* Admin Login Form */}
+          {/* Super Admin Login Form */}
           {loginMode === 'admin' && (
             <>
               {error && (
@@ -172,7 +172,7 @@ const Login = () => {
                 <Form.Group className="admin-form-group">
                   <Form.Label className="admin-form-label">
                     <FaUser className="me-2" />
-                    Admin Username
+                    Super Admin Username
                   </Form.Label>
                   <Form.Control
                     type="text"
@@ -189,7 +189,7 @@ const Login = () => {
                 <Form.Group className="admin-form-group">
                   <Form.Label className="admin-form-label">
                     <FaLock className="me-2" />
-                    Admin Password
+                    Super Admin Password
                   </Form.Label>
                   <div className="password-input-wrapper">
                     <Form.Control
@@ -225,7 +225,7 @@ const Login = () => {
                   ) : (
                     <>
                       <FaSignInAlt className="me-2" />
-                      Sign In to Admin
+                      Sign In to Super Admin
                     </>
                   )}
                 </Button>
