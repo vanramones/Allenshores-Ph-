@@ -13,8 +13,8 @@ import { toast } from 'react-toastify';
 const OWNER_BEACH_IDS = [2, 7, 11];
 
 const emptyForm = {
-  name: '', location: '', region: '', price: 0, price_level: '$',
-  type: 'public', description: '',
+  name: '', location: '', region: '', price: 0, price_level: 'Budget',
+  type: 'Beach', description: '',
   cottage_available: false, cottage_count: 0, cottage_price: 0,
   room_available: false, room_count: 0, room_price: 0,
   water_temp: '', weather_info: ''
@@ -493,9 +493,9 @@ const AdminBeaches = () => {
                     value={editForm.price_level}
                     onChange={(e) => setEditForm({ ...editForm, price_level: e.target.value })}
                   >
-                    <option value="$">Budget ($)</option>
-                    <option value="$$">Moderate ($$)</option>
-                    <option value="$$$">Premium ($$$)</option>
+                    <option value="Budget">Budget</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Premium">Premium</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -506,9 +506,10 @@ const AdminBeaches = () => {
                     value={editForm.type}
                     onChange={(e) => setEditForm({ ...editForm, type: e.target.value })}
                   >
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                    <option value="resort">Resort</option>
+                    <option value="Beach">Beach</option>
+                    <option value="White Sand">White Sand</option>
+                    <option value="Cove">Cove</option>
+                    <option value="Resort">Resort</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -693,9 +694,9 @@ const AdminBeaches = () => {
                     value={addForm.price_level}
                     onChange={(e) => setAddForm({ ...addForm, price_level: e.target.value })}
                   >
-                    <option value="$">Budget ($)</option>
-                    <option value="$$">Moderate ($$)</option>
-                    <option value="$$$">Premium ($$$)</option>
+                    <option value="Budget">Budget</option>
+                    <option value="Moderate">Moderate</option>
+                    <option value="Premium">Premium</option>
                   </Form.Select>
                 </Form.Group>
               </Col>
@@ -706,9 +707,10 @@ const AdminBeaches = () => {
                     value={addForm.type}
                     onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
                   >
-                    <option value="public">Public</option>
-                    <option value="private">Private</option>
-                    <option value="resort">Resort</option>
+                    <option value="Beach">Beach</option>
+                    <option value="White Sand">White Sand</option>
+                    <option value="Cove">Cove</option>
+                    <option value="Resort">Resort</option>
                   </Form.Select>
                 </Form.Group>
               </Col>

@@ -46,6 +46,25 @@ const uploadFields = upload.array('images', 10);
 // Helper: convert form-data boolean string to actual boolean
 const toBool = (val) => val === 'true' || val === true;
 
+// Helper: normalize price_level to DB-accepted values
+const normalizePriceLevel = (val) => {
+  const v = (val || '').toString().toLowerCase();
+  if (v === '$' || v === 'budget') return 'Budget';
+  if (v === '$$' || v === 'moderate') return 'Moderate';
+  if (v === '$$$' || v === 'premium') return 'Premium';
+  return 'Budget';
+};
+
+// Helper: normalize type to DB-accepted values
+const normalizeType = (val) => {
+  const v = (val || '').toString().toLowerCase();
+  if (v === 'public' || v === 'beach') return 'Beach';
+  if (v === 'private') return 'Cove';
+  if (v === 'resort') return 'Resort';
+  if (v === 'white sand') return 'White Sand';
+  return 'Beach';
+};
+
 // Protected beach IDs - only their respective owners can edit these
 const OWNER_BEACH_IDS = [2, 7, 11];
 
@@ -258,7 +277,7 @@ router.post('/', authMiddleware, superAdminOnly, uploadFields, async (req, res) 
       RETURNING id
     `, [
       name, location, region || null,
-      price ? parseFloat(price) : 0, price_level || '$', type || 'public', description || '',
+      price ? parseFloat(price) : 0, normalizePriceLevel(price_level), normalizeType(type), description || '',
       toBool(cottage_available), cottage_count ? parseInt(cottage_count) : 0, cottage_price ? parseFloat(cottage_price) : 0,
       toBool(room_available), room_count ? parseInt(room_count) : 0, room_price ? parseFloat(room_price) : 0,
       water_temp || '', weather_info || ''
@@ -323,7 +342,7 @@ router.put('/:id', authMiddleware, superAdminOnly, notOwnerBeach, uploadFields, 
       WHERE id = $16
     `, [
       name, location, region || null,
-      price ? parseFloat(price) : 0, price_level || '$', type || 'public', description || '',
+      price ? parseFloat(price) : 0, normalizePriceLevel(price_level), normalizeType(type), description || '',
       toBool(cottage_available), cottage_count ? parseInt(cottage_count) : 0, cottage_price ? parseFloat(cottage_price) : 0,
       toBool(room_available), room_count ? parseInt(room_count) : 0, room_price ? parseFloat(room_price) : 0,
       water_temp || '', weather_info || '',
