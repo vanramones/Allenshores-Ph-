@@ -1,1 +1,0 @@
-Bookings now managed by beach owners only; admin bookings page is read-only; owner accept/cancel sends email to guest
