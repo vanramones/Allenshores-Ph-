@@ -1,1 +1,0 @@
-Add unique color themes for each beach owner - Sunrise=Teal, Tonying=Blue, CabaVilla=Orange
