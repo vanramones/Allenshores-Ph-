@@ -12,6 +12,14 @@ import { toast } from 'react-toastify';
 // Owner-protected beach IDs - Super Admin cannot edit/delete these
 const OWNER_BEACH_IDS = [2, 7, 11];
 
+const emptyForm = {
+  name: '', location: '', region: '', price: 0, price_level: '$',
+  type: 'public', description: '',
+  cottage_available: false, cottage_count: 0, cottage_price: 0,
+  room_available: false, room_count: 0, room_price: 0,
+  water_temp: '', weather_info: ''
+};
+
 const AdminBeaches = () => {
   const [beaches, setBeaches] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -22,14 +30,11 @@ const AdminBeaches = () => {
   const [editBeach, setEditBeach] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteBeach, setDeleteBeach] = useState(null);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [editForm, setEditForm] = useState({
-    name: '', location: '', region: '', price: 0, price_level: '$',
-    type: 'public', description: '',
-    cottage_available: false, cottage_count: 0, cottage_price: 0,
-    room_available: false, room_count: 0, room_price: 0,
-    water_temp: '', weather_info: ''
-  });
+  const [editForm, setEditForm] = useState({ ...emptyForm });
+  const [addForm, setAddForm] = useState({ ...emptyForm });
+  const [addImages, setAddImages] = useState([]);
 
   useEffect(() => {
     fetchBeaches();
@@ -123,6 +128,49 @@ const AdminBeaches = () => {
     }
   };
 
+  const handleOpenAdd = () => {
+    setAddForm({ ...emptyForm });
+    setAddImages([]);
+    setShowAddModal(true);
+  };
+
+  const handleAddBeach = async () => {
+    if (!addForm.name || !addForm.location) {
+      toast.error('Beach name and location are required');
+      return;
+    }
+    setSaving(true);
+    try {
+      const formData = new FormData();
+      Object.keys(addForm).forEach(key => {
+        formData.append(key, addForm[key]);
+      });
+      // Add images
+      addImages.forEach(file => {
+        formData.append('images', file);
+      });
+      await beachesAPI.create(formData);
+      toast.success('Beach added successfully!');
+      setShowAddModal(false);
+      setAddForm({ ...emptyForm });
+      setAddImages([]);
+      fetchBeaches();
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to add beach');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleImageSelect = (e) => {
+    const files = Array.from(e.target.files);
+    setAddImages(prev => [...prev, ...files]);
+  };
+
+  const removeImage = (index) => {
+    setAddImages(prev => prev.filter((_, i) => i !== index));
+  };
+
   const isOwnerBeach = (id) => OWNER_BEACH_IDS.includes(id);
 
   const getPriceBadgeClass = (level) => {
@@ -143,9 +191,9 @@ const AdminBeaches = () => {
       {/* Header */}
       <div className="admin-page-actions mb-4">
         <h2 className="admin-page-heading mb-0">Beaches Management</h2>
-        <Badge bg="primary" className="d-flex align-items-center gap-1 p-2">
-          <FaPlus className="me-1" /> Super Admin can add/edit/delete beaches
-        </Badge>
+        <Button variant="primary" onClick={handleOpenAdd} className="d-flex align-items-center gap-2">
+          <FaPlus /> Add Beach
+        </Button>
       </div>
 
       {/* Info Banner */}
@@ -580,6 +628,249 @@ const AdminBeaches = () => {
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
           <Button variant="danger" onClick={handleDeleteConfirm} disabled={saving}>
             {saving ? <><span className="spinner-border spinner-border-sm me-2" />Deleting...</> : <><FaTrash className="me-2" />Delete Beach</>}
+          </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Add Beach Modal */}
+      <Modal show={showAddModal} onHide={() => setShowAddModal(false)} size="lg">
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FaPlus className="me-2 text-primary" /> Add New Beach
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          <Form>
+            <Row className="g-3">
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Beach Name *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addForm.name}
+                    onChange={(e) => setAddForm({ ...addForm, name: e.target.value })}
+                    placeholder="Enter beach name"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Location *</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addForm.location}
+                    onChange={(e) => setAddForm({ ...addForm, location: e.target.value })}
+                    placeholder="e.g., Brgy. Sabang, Allen"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Region</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addForm.region}
+                    onChange={(e) => setAddForm({ ...addForm, region: e.target.value })}
+                    placeholder="e.g., Allen"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Price (₱)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={addForm.price}
+                    onChange={(e) => setAddForm({ ...addForm, price: e.target.value })}
+                    placeholder="0"
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Price Level</Form.Label>
+                  <Form.Select
+                    value={addForm.price_level}
+                    onChange={(e) => setAddForm({ ...addForm, price_level: e.target.value })}
+                  >
+                    <option value="$">Budget ($)</option>
+                    <option value="$$">Moderate ($$)</option>
+                    <option value="$$$">Premium ($$$)</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Type</Form.Label>
+                  <Form.Select
+                    value={addForm.type}
+                    onChange={(e) => setAddForm({ ...addForm, type: e.target.value })}
+                  >
+                    <option value="public">Public</option>
+                    <option value="private">Private</option>
+                    <option value="resort">Resort</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+              <Col md={6}>
+                <Form.Group>
+                  <Form.Label>Water Temperature</Form.Label>
+                  <Form.Control
+                    type="text"
+                    value={addForm.water_temp}
+                    onChange={(e) => setAddForm({ ...addForm, water_temp: e.target.value })}
+                    placeholder="e.g., 28°C"
+                  />
+                </Form.Group>
+              </Col>
+              <Col xs={12}>
+                <Form.Group>
+                  <Form.Label>Description</Form.Label>
+                  <Form.Control
+                    as="textarea"
+                    rows={3}
+                    value={addForm.description}
+                    onChange={(e) => setAddForm({ ...addForm, description: e.target.value })}
+                    placeholder="Describe the beach..."
+                  />
+                </Form.Group>
+              </Col>
+
+              {/* Cottage Info */}
+              <Col xs={12}>
+                <hr />
+                <h6 className="text-muted mb-3">Cottage Information</h6>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Cottage Count</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={addForm.cottage_count}
+                    onChange={(e) => setAddForm({ ...addForm, cottage_count: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Cottage Price (₱)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={addForm.cottage_price}
+                    onChange={(e) => setAddForm({ ...addForm, cottage_price: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Cottages Available</Form.Label>
+                  <Form.Select
+                    value={addForm.cottage_available ? 'true' : 'false'}
+                    onChange={(e) => setAddForm({ ...addForm, cottage_available: e.target.value === 'true' })}
+                  >
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+
+              {/* Room Info */}
+              <Col xs={12}>
+                <hr />
+                <h6 className="text-muted mb-3">Room Information</h6>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Room Count</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={addForm.room_count}
+                    onChange={(e) => setAddForm({ ...addForm, room_count: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Room Price (₱)</Form.Label>
+                  <Form.Control
+                    type="number"
+                    value={addForm.room_price}
+                    onChange={(e) => setAddForm({ ...addForm, room_price: e.target.value })}
+                  />
+                </Form.Group>
+              </Col>
+              <Col md={4}>
+                <Form.Group>
+                  <Form.Label>Rooms Available</Form.Label>
+                  <Form.Select
+                    value={addForm.room_available ? 'true' : 'false'}
+                    onChange={(e) => setAddForm({ ...addForm, room_available: e.target.value === 'true' })}
+                  >
+                    <option value="true">Yes</option>
+                    <option value="false">No</option>
+                  </Form.Select>
+                </Form.Group>
+              </Col>
+
+              {/* Images */}
+              <Col xs={12}>
+                <hr />
+                <h6 className="text-muted mb-3">Beach Images</h6>
+              </Col>
+              <Col xs={12}>
+                <Form.Group>
+                  <Form.Label>Upload Images</Form.Label>
+                  <Form.Control
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleImageSelect}
+                  />
+                  <Form.Text className="text-muted">
+                    You can select multiple images. First image will be the primary image.
+                  </Form.Text>
+                </Form.Group>
+              </Col>
+              {addImages.length > 0 && (
+                <Col xs={12}>
+                  <div className="d-flex flex-wrap gap-2 mt-2">
+                    {addImages.map((file, index) => (
+                      <div key={index} className="position-relative" style={{ width: '100px', height: '80px' }}>
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={`Preview ${index + 1}`}
+                          style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '8px' }}
+                        />
+                        {index === 0 && (
+                          <Badge bg="success" className="position-absolute top-0 start-0 m-1" style={{ fontSize: '0.65rem' }}>
+                            Primary
+                          </Badge>
+                        )}
+                        <Button
+                          variant="danger"
+                          size="sm"
+                          className="position-absolute top-0 end-0 m-1 p-0"
+                          style={{ width: '20px', height: '20px', fontSize: '0.7rem' }}
+                          onClick={() => removeImage(index)}
+                        >
+                          <FaTimes />
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                </Col>
+              )}
+            </Row>
+          </Form>
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowAddModal(false)}>Cancel</Button>
+          <Button variant="primary" onClick={handleAddBeach} disabled={saving}>
+            {saving ? (
+              <><span className="spinner-border spinner-border-sm me-2" />Adding...</>
+            ) : (
+              <><FaPlus className="me-2" />Add Beach</>
+            )}
           </Button>
         </Modal.Footer>
       </Modal>
