@@ -141,6 +141,7 @@ export const ownerAPI = {
   }),
   getBookings: (params) => api.get('/owner/bookings', { params }),
   updateBookingStatus: (id, status) => api.put(`/owner/bookings/${id}/status`, { status }),
+  sendBookingEmail: (id, data) => api.post(`/owner/bookings/${id}/email`, data),
   deleteBooking: (id) => api.delete(`/owner/bookings/${id}`),
   getReviews: () => api.get('/owner/reviews'),
   deleteReview: (id) => api.delete(`/owner/reviews/${id}`),

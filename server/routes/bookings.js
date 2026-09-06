@@ -179,7 +179,53 @@ router.post('/', async (req, res) => {
       [rows[0].id]
     );
 
-    res.status(201).json(newBookingRows[0]);
+    const newBooking = newBookingRows[0];
+    const logo = getLogoDataUri();
+
+    // Send email notification to the beach owner (if the beach has an owner account)
+    try {
+      const { rows: ownerRows } = await db.query(
+        `SELECT bo.email, bo.username FROM beach_owners bo WHERE bo.beach_id = $1`,
+        [beach_id]
+      );
+
+      if (ownerRows.length > 0 && ownerRows[0].email) {
+        const owner = ownerRows[0];
+        await sendEmail({
+          to: owner.email,
+          subject: `New Booking Received - ${newBooking.booking_ref} - ${newBooking.beach_name}`,
+          text: `Hi ${owner.username},\n\nA new booking has been made for your beach.\n\nGuest: ${newBooking.full_name}\nEmail: ${newBooking.email}\nPhone: ${newBooking.phone}\nVisit Date: ${newBooking.visit_date}\nNumber of People: ${newBooking.people}\nReference: ${newBooking.booking_ref}\n\nPlease log in to your owner dashboard to accept or manage this booking.\n\nAllenShores PH`,
+          html: `
+            <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+              <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #d1fae5; margin-bottom: 20px;">
+                ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
+                <h1 style="color: #0f766e; margin: 10px 0 0; font-size: 24px;">AllenShores PH - Beach Owner Notification</h1>
+              </div>
+              <h2 style="color: #0f766e;">New Booking Received!</h2>
+              <p>Hi <strong>${owner.username}</strong>,</p>
+              <p>A new booking has been made for <strong>${newBooking.beach_name}</strong>.</p>
+              <table style="width: 100%; border-collapse: collapse; margin: 15px 0;">
+                <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Reference</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${newBooking.booking_ref}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Guest Name</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${newBooking.full_name}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Email</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${newBooking.email}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Phone</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${newBooking.phone || 'N/A'}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Visit Date</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${newBooking.visit_date}</td></tr>
+                <tr><td style="padding: 8px; border: 1px solid #e5e7eb; font-weight: bold;">Number of People</td><td style="padding: 8px; border: 1px solid #e5e7eb;">${newBooking.people}</td></tr>
+              </table>
+              <p style="background: #d1fae5; padding: 12px; border-radius: 8px; color: #065f46;">
+                Please log in to your <a href="https://allenshores-client.vercel.app/admin/login" style="color: #0f766e; font-weight: bold;">Owner Dashboard</a> to accept or manage this booking.
+              </p>
+              <p>AllenShores PH</p>
+            </div>
+          `
+        });
+        console.log(`Owner notification email sent to ${owner.email} for booking ${newBooking.booking_ref}`);
+      }
+    } catch (emailErr) {
+      console.error('Failed to send owner notification email:', emailErr.message);
+    }
+
+    res.status(201).json(newBooking);
   } catch (err) {
     console.error('Create booking error:', err);
     res.status(500).json({ message: 'Server error' });

@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const authMiddleware = require('../middleware/auth');
+const { sendEmail, getLogoDataUri } = require('../utils/email');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
@@ -736,6 +737,78 @@ router.put('/beach', (req, res, next) => {
     res.status(500).json({ message: 'Server error' });
   } finally {
     client.release();
+  }
+});
+
+// @route   POST /api/owner/bookings/:id/email
+// @desc    Beach owner sends custom email to a booker
+// @access  Private (Owner)
+router.post('/bookings/:id/email', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { subject, message } = req.body;
+
+    if (!subject || !message) {
+      return res.status(400).json({ message: 'Subject and message are required' });
+    }
+
+    // Verify booking belongs to owner's beach
+    const { rows } = await db.query(
+      `SELECT bk.*, b.name as beach_name
+       FROM bookings bk
+       LEFT JOIN beaches b ON bk.beach_id = b.id
+       WHERE bk.id = $1 AND bk.beach_id = $2`,
+      [req.params.id, beachId]
+    );
+
+    if (rows.length === 0) {
+      return res.status(404).json({ message: 'Booking not found' });
+    }
+
+    const booking = rows[0];
+    const logo = getLogoDataUri();
+
+    // Get owner info for the email signature
+    const { rows: ownerRows } = await db.query(
+      'SELECT username, email FROM beach_owners WHERE beach_id = $1',
+      [beachId]
+    );
+    const owner = ownerRows[0];
+
+    await sendEmail({
+      to: booking.email,
+      subject: `${subject} - ${booking.beach_name}`,
+      text: `Hi ${booking.full_name},\n\n${message}\n\nBooking Reference: ${booking.booking_ref}\nBeach: ${booking.beach_name}\nVisit Date: ${booking.visit_date}\n\nBest regards,\n${owner.username}\n${booking.beach_name}\nAllenShores PH`,
+      html: `
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+          <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #d1fae5; margin-bottom: 20px;">
+            ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
+            <h1 style="color: #0f766e; margin: 10px 0 0; font-size: 24px;">${booking.beach_name}</h1>
+          </div>
+          <h2 style="color: #0f766e;">${subject}</h2>
+          <p>Hi <strong>${booking.full_name}</strong>,</p>
+          <div style="white-space: pre-line; background: #f9fafb; padding: 15px; border-radius: 8px; border-left: 4px solid #0f766e;">
+            ${message.replace(/\n/g, '<br/>')}
+          </div>
+          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+          <p style="font-size: 0.9rem; color: #6b7280;">
+            <strong>Booking Reference:</strong> ${booking.booking_ref}<br/>
+            <strong>Beach:</strong> ${booking.beach_name}<br/>
+            <strong>Visit Date:</strong> ${booking.visit_date}
+          </p>
+          <p>Best regards,<br/><strong>${owner.username}</strong><br/>${booking.beach_name}<br/>AllenShores PH</p>
+        </div>
+      `
+    });
+
+    res.json({ message: 'Email sent successfully to ' + booking.email });
+  } catch (err) {
+    console.error('Owner send email error:', err);
+    res.status(500).json({ message: err.message || 'Failed to send email' });
   }
 });
 

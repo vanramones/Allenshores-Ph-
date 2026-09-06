@@ -1,8 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Badge, Form, Button, InputGroup, Dropdown, Modal, Row, Col } from 'react-bootstrap';
-import { FaSearch, FaFilter, FaTrash, FaEye } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaTrash, FaEye, FaEnvelope } from 'react-icons/fa';
 import { ownerAPI } from '../../services/api';
 import Loading from '../../components/common/Loading';
+import { toast } from 'react-toastify';
 
 const OwnerBookings = () => {
   const [bookings, setBookings] = useState([]);
@@ -14,6 +15,10 @@ const OwnerBookings = () => {
   const [viewBooking, setViewBooking] = useState(null);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteId, setDeleteId] = useState(null);
+  const [showEmailModal, setShowEmailModal] = useState(false);
+  const [emailBooking, setEmailBooking] = useState(null);
+  const [emailData, setEmailData] = useState({ subject: '', message: '' });
+  const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
     fetchBookings();
@@ -54,6 +59,30 @@ const OwnerBookings = () => {
     } catch (error) {
       console.error('Error deleting booking:', error);
       alert('Failed to delete booking');
+    }
+  };
+
+  const handleOpenEmail = (booking) => {
+    setEmailBooking(booking);
+    setEmailData({ subject: '', message: '' });
+    setShowEmailModal(true);
+  };
+
+  const handleSendEmail = async () => {
+    if (!emailData.subject || !emailData.message) {
+      toast.warning('Subject and message are required');
+      return;
+    }
+    setSendingEmail(true);
+    try {
+      await ownerAPI.sendBookingEmail(emailBooking.id, emailData);
+      toast.success(`Email sent to ${emailBooking.email}`);
+      setShowEmailModal(false);
+      setEmailBooking(null);
+    } catch (error) {
+      toast.error(error.response?.data?.message || 'Failed to send email');
+    } finally {
+      setSendingEmail(false);
     }
   };
 
@@ -151,6 +180,14 @@ const OwnerBookings = () => {
                       >
                         <FaEye />
                       </Button>
+                      <Button
+                        size="sm"
+                        variant="outline-primary"
+                        onClick={() => handleOpenEmail(booking)}
+                        title="Send Email"
+                      >
+                        <FaEnvelope />
+                      </Button>
                       <Dropdown>
                         <Dropdown.Toggle size="sm" variant="outline-secondary">
                           <FaFilter />
@@ -240,6 +277,69 @@ const OwnerBookings = () => {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowDeleteModal(false)}>Cancel</Button>
           <Button variant="danger" onClick={handleDelete}>Delete</Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Email Modal */}
+      <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)}>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FaEnvelope className="me-2" />
+            Send Email to Guest
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {emailBooking && (
+            <div>
+              <div className="mb-3 p-3 bg-light rounded">
+                <strong>To:</strong> {emailBooking.full_name}<br/>
+                <strong>Email:</strong> {emailBooking.email}<br/>
+                <strong>Booking Ref:</strong> {emailBooking.booking_ref}
+              </div>
+              <Form.Group className="mb-3">
+                <Form.Label>Subject *</Form.Label>
+                <Form.Control
+                  type="text"
+                  placeholder="Enter email subject..."
+                  value={emailData.subject}
+                  onChange={(e) => setEmailData({ ...emailData, subject: e.target.value })}
+                />
+              </Form.Group>
+              <Form.Group>
+                <Form.Label>Message *</Form.Label>
+                <Form.Control
+                  as="textarea"
+                  rows={6}
+                  placeholder="Type your message to the guest..."
+                  value={emailData.message}
+                  onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
+                />
+                <Form.Text className="text-muted">
+                  Your beach name will be automatically included in the email subject.
+                </Form.Text>
+              </Form.Group>
+            </div>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowEmailModal(false)}>Cancel</Button>
+          <Button
+            variant="primary"
+            onClick={handleSendEmail}
+            disabled={sendingEmail}
+            style={{ background: '#0f766e', borderColor: '#0f766e' }}
+          >
+            {sendingEmail ? (
+              <>
+                <span className="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                Sending...
+              </>
+            ) : (
+              <>
+                <FaEnvelope className="me-1" /> Send Email
+              </>
+            )}
+          </Button>
         </Modal.Footer>
       </Modal>
     </div>
