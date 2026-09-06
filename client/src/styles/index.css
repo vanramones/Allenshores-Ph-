@@ -4253,12 +4253,396 @@ body {
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-/* Owner Dashboard Chart Bar (teal) */
-.owner-dashboard .admin-chart-bar {
-  background: linear-gradient(180deg, #0f766e 0%, #14b8a6 100%) !important;
+/* ═══════════════════════════════════════════════════════════
+   Owner Dashboard - Professional Design
+   ═══════════════════════════════════════════════════════════ */
+
+/* Welcome Card */
+.owner-welcome-card {
+  background: linear-gradient(135deg, #0f766e 0%, #134e4a 100%);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  color: white;
+  box-shadow: 0 10px 40px rgba(15, 118, 110, 0.3);
+}
+
+.owner-beach-avatar {
+  width: 60px;
+  height: 60px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.75rem;
+}
+
+.owner-welcome-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0;
+}
+
+.owner-welcome-subtitle {
+  opacity: 0.9;
+  font-size: 0.95rem;
+}
+
+.owner-quick-stats {
+  margin-top: 0.5rem;
+}
+
+.owner-quick-stat {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  display: flex;
+  align-items: center;
+}
+
+.owner-action-btn {
+  background: white;
+  color: #0f766e;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 10px;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.owner-action-btn:hover {
+  background: #f0fdfa;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Stat Cards */
+.owner-stat-card {
+  border: none;
+  border-radius: 16px;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+.owner-stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.1);
+}
+
+.owner-stat-card .card-body {
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.owner-stat-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+}
+
+.owner-stat-primary { background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%); }
+.owner-stat-primary .owner-stat-icon-wrap { background: #0284c7; color: white; }
+.owner-stat-primary .owner-stat-number { color: #0369a1; }
+
+.owner-stat-warning { background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%); }
+.owner-stat-warning .owner-stat-icon-wrap { background: #d97706; color: white; }
+.owner-stat-warning .owner-stat-number { color: #b45309; }
+
+.owner-stat-success { background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%); }
+.owner-stat-success .owner-stat-icon-wrap { background: #059669; color: white; }
+.owner-stat-success .owner-stat-number { color: #047857; }
+
+.owner-stat-info { background: linear-gradient(135deg, #e0e7ff 0%, #c7d2fe 100%); }
+.owner-stat-info .owner-stat-icon-wrap { background: #6366f1; color: white; }
+.owner-stat-info .owner-stat-number { color: #4f46e5; }
+
+.owner-stat-number {
+  font-size: 2rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.owner-stat-label {
+  font-size: 0.85rem;
+  color: #64748b;
+  margin: 0;
+  font-weight: 500;
+}
+
+.owner-stat-trend {
+  font-size: 0.75rem;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+}
+
+.owner-stat-action {
+  font-size: 0.8rem;
+  color: #0f766e;
+  text-decoration: none;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.owner-stat-action:hover {
+  color: #134e4a;
+}
+
+/* Chart Card */
+.owner-chart-card,
+.owner-performance-card,
+.owner-bookings-card {
+  border: none;
+  border-radius: 16px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+}
+
+.owner-card-header {
+  background: white;
+  border-bottom: 1px solid #f1f5f9;
+  padding: 1.25rem 1.5rem;
+}
+
+.owner-card-header h5 {
+  font-weight: 600;
+  color: #1e293b;
+  margin: 0;
+  display: flex;
+  align-items: center;
+}
+
+/* Chart Container */
+.owner-chart-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 220px;
+  padding: 1rem 0;
+  gap: 0.5rem;
+}
+
+.owner-chart-bar-group {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+}
+
+.owner-chart-bar-container {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.owner-chart-bar {
+  width: 70%;
+  max-width: 50px;
+  background: linear-gradient(180deg, #0f766e 0%, #14b8a6 100%);
+  border-radius: 8px 8px 0 0;
+  position: relative;
+  transition: all 0.3s ease;
+  min-height: 10px;
+}
+
+.owner-chart-bar:hover {
+  transform: scaleY(1.05);
+  box-shadow: 0 -4px 12px rgba(15, 118, 110, 0.3);
+}
+
+.owner-chart-bar-value {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #0f766e;
+  background: #d1fae5;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.owner-chart-bar-label {
+  margin-top: 0.5rem;
+  font-size: 0.75rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* Performance Card */
+.owner-performance-item {
+  padding: 0.5rem 0;
+}
+
+.owner-quick-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.owner-quick-action-btn {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  color: #475569;
+  text-decoration: none;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: all 0.2s ease;
+}
+
+.owner-quick-action-btn:hover {
+  background: #0f766e;
+  color: white;
+  transform: translateX(4px);
+}
+
+/* Bookings Table */
+.owner-table {
+  margin: 0;
+}
+
+.owner-table thead th {
+  background: #f8fafc;
+  border: none;
+  padding: 1rem 1.25rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.owner-table tbody td {
+  padding: 1rem 1.25rem;
+  vertical-align: middle;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.owner-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.owner-guest-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.owner-guest-avatar {
+  width: 40px;
+  height: 40px;
+  background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  font-weight: 600;
+  font-size: 1rem;
+}
+
+.owner-date-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #f1f5f9;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  color: #475569;
+}
+
+.owner-status-badge {
+  padding: 0.4rem 0.75rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+/* Empty State */
+.owner-empty-state {
+  padding: 3rem 2rem;
+  text-align: center;
+}
+
+.owner-empty-icon {
+  font-size: 3rem;
+  color: #cbd5e1;
+  margin-bottom: 1rem;
+}
+
+.owner-empty-state h5 {
+  color: #475569;
+  margin-bottom: 0.5rem;
+}
+
+/* Notification Button */
+.admin-notification-btn {
+  position: relative;
+  border: none;
+  background: #f1f5f9;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  transition: all 0.2s ease;
+}
+
+.admin-notification-btn:hover {
+  background: #e2e8f0;
+  color: #0f766e;
 }
 
 /* Responsive */
+@media (max-width: 768px) {
+  .owner-welcome-card {
+    padding: 1.25rem;
+  }
+  
+  .owner-welcome-title {
+    font-size: 1.25rem;
+  }
+  
+  .owner-beach-avatar {
+    width: 48px;
+    height: 48px;
+    font-size: 1.25rem;
+  }
+  
+  .owner-quick-stats {
+    flex-direction: column;
+  }
+  
+  .owner-stat-number {
+    font-size: 1.5rem;
+  }
+  
+  .owner-chart-container {
+    height: 160px;
+  }
+}
+
 @media (max-width: 576px) {
   .login-mode-btn {
     font-size: 0.8rem;

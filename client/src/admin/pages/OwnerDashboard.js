@@ -1,10 +1,17 @@
 import React, { useState, useEffect } from 'react';
-import { Row, Col, Card, Badge, Table } from 'react-bootstrap';
-import { FaCalendarCheck, FaStar, FaUsers, FaClock, FaCheckCircle, FaHourglassHalf, FaChartLine } from 'react-icons/fa';
+import { Row, Col, Card, Badge, Table, Button, ProgressBar } from 'react-bootstrap';
+import { Link } from 'react-router-dom';
+import {
+  FaCalendarCheck, FaStar, FaUsers, FaClock, FaCheckCircle, FaHourglassHalf,
+  FaChartLine, FaMapMarkerAlt, FaArrowRight, FaUmbrellaBeach,
+  FaEye, FaCalendarAlt, FaUserFriends, FaWater, FaChartBar
+} from 'react-icons/fa';
 import { ownerAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import Loading from '../../components/common/Loading';
 
 const OwnerDashboard = () => {
+  const { owner } = useAuth();
   const [stats, setStats] = useState(null);
   const [recentBookings, setRecentBookings] = useState([]);
   const [trend, setTrend] = useState([]);
@@ -34,72 +41,161 @@ const OwnerDashboard = () => {
   if (loading) return <Loading text="Loading your dashboard..." />;
 
   const maxTrend = Math.max(...trend.map(t => t.count), 1);
-
-  const statCards = [
-    { label: 'Total Bookings', value: stats?.totalBookings || 0, icon: <FaCalendarCheck />, color: '#0077b6', bg: '#e0f2fe' },
-    { label: 'Pending', value: stats?.pendingBookings || 0, icon: <FaHourglassHalf />, color: '#b45309', bg: '#fef3c7' },
-    { label: 'Confirmed', value: stats?.confirmedBookings || 0, icon: <FaCheckCircle />, color: '#065f46', bg: '#d1fae5' },
-    { label: 'Total Guests', value: stats?.totalGuests || 0, icon: <FaUsers />, color: '#7c3aed', bg: '#ede9fe' },
-    { label: 'Reviews', value: stats?.totalReviews || 0, icon: <FaStar />, color: '#dc2626', bg: '#fee2e2' },
-    { label: 'Today', value: stats?.todayBookings || 0, icon: <FaClock />, color: '#0891b2', bg: '#cffafe' }
-  ];
+  const totalBookings = stats?.totalBookings || 0;
+  const pendingBookings = stats?.pendingBookings || 0;
+  const confirmedBookings = stats?.confirmedBookings || 0;
+  const confirmationRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0;
 
   return (
-    <div className="fade-in">
-      {/* Beach Header */}
-      <div className="d-flex justify-content-between align-items-center mb-4">
-        <div>
-          <h2 className="fw-bold mb-1">{stats?.beach?.name || 'My Beach'}</h2>
-          <p className="text-muted mb-0">
-            <FaCalendarCheck className="me-1" />
-            {stats?.beach?.location || ''} · Owner Dashboard
-          </p>
-        </div>
-        <Badge bg="info" className="p-2">
-          <FaChartLine className="me-1" /> {stats?.weekBookings || 0} bookings this week
-        </Badge>
+    <div className="owner-dashboard fade-in">
+      {/* Welcome Header */}
+      <div className="owner-welcome-card mb-4">
+        <Row className="align-items-center">
+          <Col md={8}>
+            <div className="d-flex align-items-center mb-3">
+              <div className="owner-beach-avatar me-3">
+                <FaUmbrellaBeach />
+              </div>
+              <div>
+                <h2 className="owner-welcome-title mb-1">
+                  Welcome back, {owner?.username || 'Owner'}!
+                </h2>
+                <p className="owner-welcome-subtitle mb-0">
+                  <FaMapMarkerAlt className="me-1" />
+                  {stats?.beach?.name || 'Your Beach'} · {stats?.beach?.location || 'Allen, Northern Samar'}
+                </p>
+              </div>
+            </div>
+            <div className="owner-quick-stats d-flex flex-wrap gap-3">
+              <div className="owner-quick-stat">
+                <FaCalendarAlt className="me-2" />
+                <span><strong>{stats?.todayBookings || 0}</strong> bookings today</span>
+              </div>
+              <div className="owner-quick-stat">
+                <FaUserFriends className="me-2" />
+                <span><strong>{stats?.weekBookings || 0}</strong> this week</span>
+              </div>
+              <div className="owner-quick-stat">
+                <FaHourglassHalf className="me-2" style={{ color: '#f59e0b' }} />
+                <span><strong>{pendingBookings}</strong> pending approval</span>
+              </div>
+            </div>
+          </Col>
+          <Col md={4} className="text-md-end mt-3 mt-md-0">
+            <Link to="/owner/bookings">
+              <Button variant="light" className="owner-action-btn">
+                <FaEye className="me-2" /> View All Bookings
+                <FaArrowRight className="ms-2" />
+              </Button>
+            </Link>
+          </Col>
+        </Row>
       </div>
 
-      {/* Stat Cards */}
+      {/* Main Stats Cards */}
       <Row className="g-3 mb-4">
-        {statCards.map((stat, i) => (
-          <Col xs={6} md={4} lg={2} key={i}>
-            <Card className="admin-stat-card h-100">
-              <Card.Body className="text-center">
-                <div className="admin-stat-icon" style={{ background: stat.bg, color: stat.color }}>
-                  {stat.icon}
-                </div>
-                <h3 className="admin-stat-value">{stat.value}</h3>
-                <p className="admin-stat-label">{stat.label}</p>
-              </Card.Body>
-            </Card>
-          </Col>
-        ))}
+        <Col xs={6} lg={3}>
+          <Card className="owner-stat-card owner-stat-primary">
+            <Card.Body>
+              <div className="owner-stat-icon-wrap">
+                <FaCalendarCheck />
+              </div>
+              <div className="owner-stat-content">
+                <h3 className="owner-stat-number">{totalBookings}</h3>
+                <p className="owner-stat-label">Total Bookings</p>
+              </div>
+              <div className="owner-stat-trend">
+                <FaChartBar className="me-1" />
+                All time
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={6} lg={3}>
+          <Card className="owner-stat-card owner-stat-warning">
+            <Card.Body>
+              <div className="owner-stat-icon-wrap">
+                <FaHourglassHalf />
+              </div>
+              <div className="owner-stat-content">
+                <h3 className="owner-stat-number">{pendingBookings}</h3>
+                <p className="owner-stat-label">Pending</p>
+              </div>
+              <Link to="/owner/bookings" className="owner-stat-action">
+                Review Now <FaArrowRight />
+              </Link>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={6} lg={3}>
+          <Card className="owner-stat-card owner-stat-success">
+            <Card.Body>
+              <div className="owner-stat-icon-wrap">
+                <FaCheckCircle />
+              </div>
+              <div className="owner-stat-content">
+                <h3 className="owner-stat-number">{confirmedBookings}</h3>
+                <p className="owner-stat-label">Confirmed</p>
+              </div>
+              <div className="owner-stat-trend">
+                {confirmationRate}% rate
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
+        <Col xs={6} lg={3}>
+          <Card className="owner-stat-card owner-stat-info">
+            <Card.Body>
+              <div className="owner-stat-icon-wrap">
+                <FaUsers />
+              </div>
+              <div className="owner-stat-content">
+                <h3 className="owner-stat-number">{stats?.totalGuests || 0}</h3>
+                <p className="owner-stat-label">Total Guests</p>
+              </div>
+              <div className="owner-stat-trend">
+                <FaStar className="me-1" style={{ color: '#fbbf24' }} />
+                {stats?.totalReviews || 0} reviews
+              </div>
+            </Card.Body>
+          </Card>
+        </Col>
       </Row>
 
-      <Row className="g-4">
+      {/* Charts and Tables Row */}
+      <Row className="g-4 mb-4">
         {/* Booking Trend Chart */}
-        <Col lg={7}>
-          <Card className="admin-chart-card">
-            <Card.Header className="admin-card-header">
-              <h5 className="mb-0">Booking Trend (7 Days)</h5>
+        <Col lg={8}>
+          <Card className="owner-chart-card h-100">
+            <Card.Header className="owner-card-header">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 className="mb-1">
+                    <FaChartLine className="me-2" style={{ color: '#0f766e' }} />
+                    Booking Trend
+                  </h5>
+                  <small className="text-muted">Last 7 days performance</small>
+                </div>
+                <Badge bg="light" text="dark" className="px-3 py-2">
+                  <FaWater className="me-1" /> {trend.reduce((sum, d) => sum + d.count, 0)} total
+                </Badge>
+              </div>
             </Card.Header>
             <Card.Body>
-              <div className="admin-chart-bars">
+              <div className="owner-chart-container">
                 {trend.map((day, i) => (
-                  <div key={i} className="admin-chart-bar-item">
-                    <div className="admin-chart-bar-wrapper">
+                  <div key={i} className="owner-chart-bar-group">
+                    <div className="owner-chart-bar-container">
                       <div
-                        className="admin-chart-bar"
+                        className="owner-chart-bar"
                         style={{
-                          height: `${(day.count / maxTrend) * 200 + 10}px`,
-                          background: 'linear-gradient(180deg, #0f766e 0%, #14b8a6 100%)'
+                          height: `${Math.max((day.count / maxTrend) * 100, 5)}%`,
                         }}
                       >
-                        <span className="admin-chart-bar-value">{day.count}</span>
+                        <span className="owner-chart-bar-value">{day.count}</span>
                       </div>
                     </div>
-                    <small className="admin-chart-bar-label">{day.label}</small>
+                    <span className="owner-chart-bar-label">{day.label}</span>
                   </div>
                 ))}
               </div>
@@ -107,46 +203,164 @@ const OwnerDashboard = () => {
           </Card>
         </Col>
 
-        {/* Recent Bookings */}
-        <Col lg={5}>
-          <Card className="admin-table-card">
-            <Card.Header className="admin-card-header">
-              <h5 className="mb-0">Recent Bookings</h5>
+        {/* Performance Summary */}
+        <Col lg={4}>
+          <Card className="owner-performance-card h-100">
+            <Card.Header className="owner-card-header">
+              <h5 className="mb-0">
+                <FaChartBar className="me-2" style={{ color: '#0f766e' }} />
+                Performance
+              </h5>
             </Card.Header>
-            <Card.Body className="p-0">
-              {recentBookings.length === 0 ? (
-                <p className="text-muted text-center p-4">No bookings yet</p>
-              ) : (
-                <Table responsive className="admin-table mb-0">
-                  <thead>
-                    <tr>
-                      <th>Guest</th>
-                      <th>Date</th>
-                      <th>Status</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {recentBookings.map(booking => (
-                      <tr key={booking.id}>
-                        <td>
-                          <div className="fw-semibold">{booking.full_name}</div>
-                          <small className="text-muted">{booking.booking_ref}</small>
-                        </td>
-                        <td>{new Date(booking.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</td>
-                        <td>
-                          <Badge bg={booking.status === 'confirmed' ? 'success' : booking.status === 'cancelled' ? 'danger' : 'warning'}>
-                            {booking.status}
-                          </Badge>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </Table>
-              )}
+            <Card.Body>
+              <div className="owner-performance-item mb-4">
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Confirmation Rate</span>
+                  <strong>{confirmationRate}%</strong>
+                </div>
+                <ProgressBar 
+                  now={confirmationRate} 
+                  variant="success" 
+                  style={{ height: '8px', borderRadius: '4px' }}
+                />
+              </div>
+              
+              <div className="owner-performance-item mb-4">
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Today's Progress</span>
+                  <strong>{stats?.todayBookings || 0} bookings</strong>
+                </div>
+                <ProgressBar 
+                  now={Math.min((stats?.todayBookings || 0) * 20, 100)} 
+                  variant="info" 
+                  style={{ height: '8px', borderRadius: '4px' }}
+                />
+              </div>
+
+              <div className="owner-performance-item">
+                <div className="d-flex justify-content-between mb-2">
+                  <span>Weekly Target</span>
+                  <strong>{stats?.weekBookings || 0} / 10</strong>
+                </div>
+                <ProgressBar 
+                  now={Math.min((stats?.weekBookings || 0) * 10, 100)} 
+                  variant="warning" 
+                  style={{ height: '8px', borderRadius: '4px' }}
+                />
+              </div>
+
+              <hr className="my-4" />
+
+              <div className="owner-quick-actions">
+                <Link to="/owner/beach" className="owner-quick-action-btn">
+                  <FaUmbrellaBeach className="me-2" /> Edit Beach Info
+                </Link>
+                <Link to="/owner/reviews" className="owner-quick-action-btn">
+                  <FaStar className="me-2" /> View Reviews
+                </Link>
+                <Link to="/owner/reports" className="owner-quick-action-btn">
+                  <FaChartLine className="me-2" /> View Reports
+                </Link>
+              </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
+
+      {/* Recent Bookings Table */}
+      <Card className="owner-bookings-card">
+        <Card.Header className="owner-card-header">
+          <div className="d-flex justify-content-between align-items-center">
+            <div>
+              <h5 className="mb-1">
+                <FaCalendarCheck className="me-2" style={{ color: '#0f766e' }} />
+                Recent Bookings
+              </h5>
+              <small className="text-muted">Latest guest reservations</small>
+            </div>
+            <Link to="/owner/bookings">
+              <Button variant="outline-primary" size="sm">
+                View All <FaArrowRight className="ms-1" />
+              </Button>
+            </Link>
+          </div>
+        </Card.Header>
+        <Card.Body className="p-0">
+          {recentBookings.length === 0 ? (
+            <div className="owner-empty-state">
+              <FaCalendarCheck className="owner-empty-icon" />
+              <h5>No bookings yet</h5>
+              <p className="text-muted">When guests book your beach, they'll appear here.</p>
+            </div>
+          ) : (
+            <Table responsive className="owner-table mb-0">
+              <thead>
+                <tr>
+                  <th>Guest</th>
+                  <th>Contact</th>
+                  <th>Visit Date</th>
+                  <th>People</th>
+                  <th>Status</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                {recentBookings.map(booking => (
+                  <tr key={booking.id}>
+                    <td>
+                      <div className="owner-guest-info">
+                        <div className="owner-guest-avatar">
+                          {booking.full_name.charAt(0).toUpperCase()}
+                        </div>
+                        <div>
+                          <div className="fw-semibold">{booking.full_name}</div>
+                          <small className="text-muted">{booking.booking_ref}</small>
+                        </div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="small">
+                        <div>{booking.email}</div>
+                        <div className="text-muted">{booking.phone || 'N/A'}</div>
+                      </div>
+                    </td>
+                    <td>
+                      <div className="owner-date-badge">
+                        <FaCalendarAlt className="me-1" />
+                        {new Date(booking.visit_date).toLocaleDateString('en-US', { 
+                          month: 'short', 
+                          day: 'numeric',
+                          year: 'numeric'
+                        })}
+                      </div>
+                    </td>
+                    <td>
+                      <Badge bg="light" text="dark">
+                        <FaUsers className="me-1" /> {booking.people}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Badge 
+                        bg={booking.status === 'confirmed' ? 'success' : booking.status === 'cancelled' ? 'danger' : 'warning'}
+                        className="owner-status-badge"
+                      >
+                        {booking.status === 'confirmed' && <FaCheckCircle className="me-1" />}
+                        {booking.status === 'pending' && <FaHourglassHalf className="me-1" />}
+                        {booking.status}
+                      </Badge>
+                    </td>
+                    <td>
+                      <Link to="/owner/bookings" className="btn btn-sm btn-outline-primary">
+                        <FaEye />
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </Table>
+          )}
+        </Card.Body>
+      </Card>
     </div>
   );
 };
