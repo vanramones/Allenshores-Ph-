@@ -2,9 +2,14 @@ import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Badge, Table, Button, ProgressBar } from 'react-bootstrap';
 import { Link } from 'react-router-dom';
 import {
-  FaCalendarCheck, FaStar, FaUsers, FaClock, FaCheckCircle, FaHourglassHalf,
+  AreaChart, Area, BarChart, Bar, PieChart, Pie, Cell,
+  XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend
+} from 'recharts';
+import {
+  FaCalendarCheck, FaStar, FaUsers, FaCheckCircle, FaHourglassHalf,
   FaChartLine, FaMapMarkerAlt, FaArrowRight, FaUmbrellaBeach,
-  FaEye, FaCalendarAlt, FaUserFriends, FaWater, FaChartBar
+  FaEye, FaCalendarAlt, FaUserFriends, FaWater, FaChartBar,
+  FaTachometerAlt, FaPercentage, FaCrown
 } from 'react-icons/fa';
 import { ownerAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
@@ -59,7 +64,31 @@ const OwnerDashboard = ({ theme: propTheme }) => {
   const totalBookings = stats?.totalBookings || 0;
   const pendingBookings = stats?.pendingBookings || 0;
   const confirmedBookings = stats?.confirmedBookings || 0;
+  const cancelledBookings = totalBookings - pendingBookings - confirmedBookings;
   const confirmationRate = totalBookings > 0 ? Math.round((confirmedBookings / totalBookings) * 100) : 0;
+  const totalGuests = stats?.totalGuests || 0;
+  const totalReviews = stats?.totalReviews || 0;
+  const avgRating = stats?.beach?.rating || 0;
+
+  // Chart data
+  const trendData = trend.map(day => ({
+    name: day.label,
+    bookings: day.count,
+    guests: day.count * 2 // approximate
+  }));
+
+  const bookingStatusData = [
+    { name: 'Confirmed', value: confirmedBookings, color: '#10b981' },
+    { name: 'Pending', value: pendingBookings, color: '#f59e0b' },
+    { name: 'Cancelled', value: Math.max(cancelledBookings, 0), color: '#ef4444' }
+  ].filter(item => item.value > 0);
+
+  const performanceData = [
+    { metric: 'Bookings', value: Math.min((totalBookings / 20) * 100, 100), fill: theme.primary },
+    { metric: 'Confirm Rate', value: confirmationRate, fill: '#10b981' },
+    { metric: 'Reviews', value: Math.min((totalReviews / 10) * 100, 100), fill: '#f59e0b' },
+    { metric: 'Guests', value: Math.min((totalGuests / 50) * 100, 100), fill: '#6366f1' }
+  ];
 
   return (
     <div className={`owner-dashboard fade-in owner-theme-${theme.name}`}>
@@ -91,9 +120,15 @@ const OwnerDashboard = ({ theme: propTheme }) => {
                 <span><strong>{stats?.weekBookings || 0}</strong> this week</span>
               </div>
               <div className="owner-quick-stat">
-                <FaHourglassHalf className="me-2" style={{ color: '#f59e0b' }} />
+                <FaHourglassHalf className="me-2" style={{ color: '#fde68a' }} />
                 <span><strong>{pendingBookings}</strong> pending approval</span>
               </div>
+              {avgRating > 0 && (
+                <div className="owner-quick-stat">
+                  <FaStar className="me-2" style={{ color: '#fde68a' }} />
+                  <span><strong>{parseFloat(avgRating).toFixed(1)}</strong> rating</span>
+                </div>
+              )}
             </div>
           </Col>
           <Col md={4} className="text-md-end mt-3 mt-md-0">
@@ -120,7 +155,7 @@ const OwnerDashboard = ({ theme: propTheme }) => {
                 <p className="owner-stat-label">Total Bookings</p>
               </div>
               <div className="owner-stat-trend">
-                <FaChartBar className="me-1" />
+                <FaChartLine className="me-1" />
                 All time
               </div>
             </Card.Body>
@@ -153,6 +188,7 @@ const OwnerDashboard = ({ theme: propTheme }) => {
                 <p className="owner-stat-label">Confirmed</p>
               </div>
               <div className="owner-stat-trend">
+                <FaPercentage className="me-1" />
                 {confirmationRate}% rate
               </div>
             </Card.Body>
@@ -165,21 +201,21 @@ const OwnerDashboard = ({ theme: propTheme }) => {
                 <FaUsers />
               </div>
               <div className="owner-stat-content">
-                <h3 className="owner-stat-number">{stats?.totalGuests || 0}</h3>
+                <h3 className="owner-stat-number">{totalGuests}</h3>
                 <p className="owner-stat-label">Total Guests</p>
               </div>
               <div className="owner-stat-trend">
                 <FaStar className="me-1" style={{ color: '#fbbf24' }} />
-                {stats?.totalReviews || 0} reviews
+                {totalReviews} reviews
               </div>
             </Card.Body>
           </Card>
         </Col>
       </Row>
 
-      {/* Charts and Tables Row */}
+      {/* Charts Row 1 - Area Chart + Pie Chart */}
       <Row className="g-4 mb-4">
-        {/* Booking Trend Chart */}
+        {/* Booking Trend - Area Chart */}
         <Col lg={8}>
           <Card className="owner-chart-card h-100">
             <Card.Header className="owner-card-header">
@@ -189,7 +225,7 @@ const OwnerDashboard = ({ theme: propTheme }) => {
                     <FaChartLine className="me-2" style={{ color: theme.primary }} />
                     Booking Trend
                   </h5>
-                  <small className="text-muted">Last 7 days performance</small>
+                  <small className="text-muted">Last 7 days performance overview</small>
                 </div>
                 <Badge bg="light" text="dark" className="px-3 py-2">
                   <FaWater className="me-1" /> {trend.reduce((sum, d) => sum + d.count, 0)} total
@@ -197,82 +233,218 @@ const OwnerDashboard = ({ theme: propTheme }) => {
               </div>
             </Card.Header>
             <Card.Body>
-              <div className="owner-chart-container">
-                {trend.map((day, i) => (
-                  <div key={i} className="owner-chart-bar-group">
-                    <div className="owner-chart-bar-container">
-                      <div
-                        className="owner-chart-bar"
-                        style={{
-                          height: `${Math.max((day.count / maxTrend) * 100, 5)}%`,
-                          background: `linear-gradient(180deg, ${theme.primary} 0%, ${theme.primaryLight} 100%)`
-                        }}
-                      >
-                        <span className="owner-chart-bar-value" style={{ color: theme.primary, background: theme.accent }}>{day.count}</span>
-                      </div>
-                    </div>
-                    <span className="owner-chart-bar-label">{day.label}</span>
-                  </div>
-                ))}
-              </div>
+              <ResponsiveContainer width="100%" height={280}>
+                <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <defs>
+                    <linearGradient id="colorBookings" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={theme.primary} stopOpacity={0.8} />
+                      <stop offset="95%" stopColor={theme.primary} stopOpacity={0.1} />
+                    </linearGradient>
+                    <linearGradient id="colorGuests" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor={theme.primaryLight} stopOpacity={0.6} />
+                      <stop offset="95%" stopColor={theme.primaryLight} stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="name" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} allowDecimals={false} />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '0.85rem'
+                    }}
+                  />
+                  <Legend wrapperStyle={{ fontSize: '0.85rem', paddingTop: '10px' }} />
+                  <Area
+                    type="monotone"
+                    dataKey="bookings"
+                    name="Bookings"
+                    stroke={theme.primary}
+                    strokeWidth={2}
+                    fill="url(#colorBookings)"
+                    dot={{ fill: theme.primary, r: 4 }}
+                    activeDot={{ r: 6 }}
+                  />
+                  <Area
+                    type="monotone"
+                    dataKey="guests"
+                    name="Est. Guests"
+                    stroke={theme.primaryLight}
+                    strokeWidth={2}
+                    fill="url(#colorGuests)"
+                    dot={{ fill: theme.primaryLight, r: 3 }}
+                  />
+                </AreaChart>
+              </ResponsiveContainer>
             </Card.Body>
           </Card>
         </Col>
 
-        {/* Performance Summary */}
+        {/* Booking Status - Pie Chart */}
+        <Col lg={4}>
+          <Card className="owner-chart-card h-100">
+            <Card.Header className="owner-card-header">
+              <h5 className="mb-0">
+                <FaChartBar className="me-2" style={{ color: theme.primary }} />
+                Booking Status
+              </h5>
+              <small className="text-muted">Distribution overview</small>
+            </Card.Header>
+            <Card.Body className="d-flex flex-column align-items-center justify-content-center">
+              {bookingStatusData.length > 0 ? (
+                <>
+                  <ResponsiveContainer width="100%" height={200}>
+                    <PieChart>
+                      <Pie
+                        data={bookingStatusData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={50}
+                        outerRadius={80}
+                        paddingAngle={3}
+                        dataKey="value"
+                      >
+                        {bookingStatusData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.color} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{
+                          background: 'white',
+                          border: '1px solid #e2e8f0',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem'
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  <div className="owner-pie-legend mt-2">
+                    {bookingStatusData.map((item, i) => (
+                      <div key={i} className="owner-pie-legend-item">
+                        <span className="owner-pie-legend-dot" style={{ background: item.color }}></span>
+                        <span className="owner-pie-legend-label">{item.name}</span>
+                        <span className="owner-pie-legend-value">{item.value}</span>
+                      </div>
+                    ))}
+                  </div>
+                </>
+              ) : (
+                <div className="owner-empty-state">
+                  <FaChartBar className="owner-empty-icon" />
+                  <p className="text-muted">No booking data yet</p>
+                </div>
+              )}
+            </Card.Body>
+          </Card>
+        </Col>
+      </Row>
+
+      {/* Charts Row 2 - Performance Bar Chart + Quick Actions */}
+      <Row className="g-4 mb-4">
+        {/* Performance Bar Chart */}
+        <Col lg={8}>
+          <Card className="owner-chart-card h-100">
+            <Card.Header className="owner-card-header">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <h5 className="mb-1">
+                    <FaTachometerAlt className="me-2" style={{ color: theme.primary }} />
+                    Performance Metrics
+                  </h5>
+                  <small className="text-muted">Key performance indicators</small>
+                </div>
+              </div>
+            </Card.Header>
+            <Card.Body>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={performanceData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" />
+                  <XAxis dataKey="metric" stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} />
+                  <YAxis stroke="#94a3b8" fontSize={12} tickLine={false} axisLine={false} domain={[0, 100]} />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'white',
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '12px',
+                      boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+                      fontSize: '0.85rem'
+                    }}
+                    formatter={(value) => [`${value}%`, 'Progress']}
+                  />
+                  <Bar dataKey="value" radius={[8, 8, 0, 0]} maxBarSize={60}>
+                    {performanceData.map((entry, index) => (
+                      <Cell key={`bar-${index}`} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Card.Body>
+          </Card>
+        </Col>
+
+        {/* Quick Actions & Performance Panel */}
         <Col lg={4}>
           <Card className="owner-performance-card h-100">
             <Card.Header className="owner-card-header">
               <h5 className="mb-0">
-                <FaChartBar className="me-2" style={{ color: theme.primary }} />
-                Performance
+                <FaCrown className="me-2" style={{ color: theme.primary }} />
+                Quick Actions
               </h5>
             </Card.Header>
             <Card.Body>
-              <div className="owner-performance-item mb-4">
+              <div className="owner-performance-item mb-3">
                 <div className="d-flex justify-content-between mb-2">
-                  <span>Confirmation Rate</span>
-                  <strong>{confirmationRate}%</strong>
+                  <span className="fw-semibold">Confirmation Rate</span>
+                  <strong style={{ color: theme.primary }}>{confirmationRate}%</strong>
                 </div>
-                <ProgressBar 
-                  now={confirmationRate} 
-                  variant="success" 
+                <ProgressBar
+                  now={confirmationRate}
+                  variant="success"
                   style={{ height: '8px', borderRadius: '4px' }}
                 />
               </div>
-              
-              <div className="owner-performance-item mb-4">
+
+              <div className="owner-performance-item mb-3">
                 <div className="d-flex justify-content-between mb-2">
-                  <span>Today's Progress</span>
+                  <span className="fw-semibold">Today's Activity</span>
                   <strong>{stats?.todayBookings || 0} bookings</strong>
                 </div>
-                <ProgressBar 
-                  now={Math.min((stats?.todayBookings || 0) * 20, 100)} 
-                  variant="info" 
+                <ProgressBar
+                  now={Math.min((stats?.todayBookings || 0) * 20, 100)}
+                  variant="info"
                   style={{ height: '8px', borderRadius: '4px' }}
                 />
               </div>
 
-              <div className="owner-performance-item">
+              <div className="owner-performance-item mb-4">
                 <div className="d-flex justify-content-between mb-2">
-                  <span>Weekly Target</span>
+                  <span className="fw-semibold">Weekly Target</span>
                   <strong>{stats?.weekBookings || 0} / 10</strong>
                 </div>
-                <ProgressBar 
-                  now={Math.min((stats?.weekBookings || 0) * 10, 100)} 
-                  variant="warning" 
+                <ProgressBar
+                  now={Math.min((stats?.weekBookings || 0) * 10, 100)}
+                  variant="warning"
                   style={{ height: '8px', borderRadius: '4px' }}
                 />
               </div>
 
-              <hr className="my-4" />
+              <hr className="my-3" />
 
               <div className="owner-quick-actions">
                 <Link to="/owner/beach" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
                   <FaUmbrellaBeach className="me-2" /> Edit Beach Info
                 </Link>
+                <Link to="/owner/bookings" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
+                  <FaCalendarCheck className="me-2" /> Manage Bookings
+                </Link>
                 <Link to="/owner/reviews" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
                   <FaStar className="me-2" /> View Reviews
+                </Link>
+                <Link to="/owner/admins" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
+                  <FaUserFriends className="me-2" /> Admin Accounts
                 </Link>
                 <Link to="/owner/reports" className="owner-quick-action-btn" style={{ '--hover-bg': theme.primary }}>
                   <FaChartLine className="me-2" /> View Reports
@@ -343,8 +515,8 @@ const OwnerDashboard = ({ theme: propTheme }) => {
                     <td>
                       <div className="owner-date-badge">
                         <FaCalendarAlt className="me-1" />
-                        {new Date(booking.visit_date).toLocaleDateString('en-US', { 
-                          month: 'short', 
+                        {new Date(booking.visit_date).toLocaleDateString('en-US', {
+                          month: 'short',
                           day: 'numeric',
                           year: 'numeric'
                         })}
@@ -356,7 +528,7 @@ const OwnerDashboard = ({ theme: propTheme }) => {
                       </Badge>
                     </td>
                     <td>
-                      <Badge 
+                      <Badge
                         bg={booking.status === 'confirmed' ? 'success' : booking.status === 'cancelled' ? 'danger' : 'warning'}
                         className="owner-status-badge"
                       >

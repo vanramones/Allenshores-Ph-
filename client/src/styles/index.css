@@ -4603,6 +4603,39 @@ body {
   color: #475569;
 }
 
+/* Pie Chart Legend */
+.owner-pie-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0 0.5rem;
+}
+
+.owner-pie-legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.85rem;
+}
+
+.owner-pie-legend-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 4px;
+  flex-shrink: 0;
+}
+
+.owner-pie-legend-label {
+  flex: 1;
+  color: #475569;
+}
+
+.owner-pie-legend-value {
+  font-weight: 700;
+  color: #1e293b;
+}
+
 /* Notification Button & Dropdown */
 .notification-dropdown .dropdown-toggle::after {
   display: none;
