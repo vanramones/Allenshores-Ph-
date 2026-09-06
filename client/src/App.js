@@ -33,6 +33,7 @@ import AdminReports from './admin/pages/AdminReports';
 
 // Owner Pages
 import OwnerDashboard from './admin/pages/OwnerDashboard';
+import OwnerBeachEdit from './admin/pages/OwnerBeachEdit';
 import OwnerBookings from './admin/pages/OwnerBookings';
 import OwnerReviews from './admin/pages/OwnerReviews';
 import OwnerReports from './admin/pages/OwnerReports';
@@ -118,6 +119,7 @@ function App() {
             {/* Owner Routes */}
             <Route path="/owner" element={<Navigate to="/owner/dashboard" replace />} />
             <Route path="/owner/dashboard" element={<OwnerRoute><OwnerDashboard /></OwnerRoute>} />
+            <Route path="/owner/beach" element={<OwnerRoute><OwnerBeachEdit /></OwnerRoute>} />
             <Route path="/owner/bookings" element={<OwnerRoute><OwnerBookings /></OwnerRoute>} />
             <Route path="/owner/reviews" element={<OwnerRoute><OwnerReviews /></OwnerRoute>} />
             <Route path="/owner/reports" element={<OwnerRoute><OwnerReports /></OwnerRoute>} />

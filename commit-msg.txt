@@ -1,0 +1,1 @@
+Beach owners can edit their own beach; admin beaches page is now read-only

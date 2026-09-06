@@ -2,6 +2,48 @@ const express = require('express');
 const router = express.Router();
 const db = require('../config/db');
 const authMiddleware = require('../middleware/auth');
+const multer = require('multer');
+const path = require('path');
+const fs = require('fs').promises;
+
+// Cloudinary setup for image uploads (works on Vercel)
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME || 'demo',
+  api_key: process.env.CLOUDINARY_API_KEY || '',
+  api_secret: process.env.CLOUDINARY_API_SECRET || ''
+});
+
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'allenshores/beaches',
+    allowed_formats: ['jpg', 'jpeg', 'png', 'gif', 'webp'],
+    transformation: [{ width: 1200, crop: 'limit' }],
+    public_id: (req, file) => `beach_${Date.now()}_${Math.floor(Math.random() * 1000)}`
+  }
+});
+
+const upload = multer({
+  storage,
+  limits: { fileSize: 5 * 1024 * 1024 },
+  fileFilter: (req, file, cb) => {
+    const allowedTypes = /jpeg|jpg|png|gif|webp/;
+    const extname = allowedTypes.test(path.extname(file.originalname).toLowerCase());
+    const mimetype = allowedTypes.test(file.mimetype);
+    if (extname && mimetype) {
+      cb(null, true);
+    } else {
+      cb(new Error('Only image files are allowed'));
+    }
+  }
+});
+
+const uploadFields = upload.array('images', 10);
+
+const toBool = (val) => val === 'true' || val === true;
 
 // All routes require beach owner authentication
 router.use(authMiddleware);
@@ -527,6 +569,173 @@ router.get('/reports/reviews', async (req, res) => {
   } catch (err) {
     console.error('Owner reviews report error:', err);
     res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// BEACH EDIT (Owner can edit only their own beach)
+// ═══════════════════════════════════════════════════════════
+
+// @route   PUT /api/owner/beach
+// @desc    Update owner's beach details + images
+// @access  Private (Owner)
+router.put('/beach', (req, res, next) => {
+  uploadFields(req, res, (err) => {
+    if (err) return res.status(400).json({ message: err.message });
+    next();
+  });
+}, async (req, res) => {
+  const client = await db.connect();
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    await client.query('BEGIN');
+
+    const {
+      name, location, region,
+      price, price_level, type, description,
+      cottage_available, cottage_count, cottage_price,
+      room_available, room_count, room_price,
+      water_temp, weather_info,
+      deletedImages, primaryImageId
+    } = req.body;
+
+    // Update beach details (only the owner's beach)
+    await client.query(
+      `UPDATE beaches SET
+        name = $1, location = $2, region = $3,
+        price = $4, price_level = $5, type = $6, description = $7,
+        cottage_available = $8, cottage_count = $9, cottage_price = $10,
+        room_available = $11, room_count = $12, room_price = $13,
+        water_temp = $14, weather_info = $15
+      WHERE id = $16`,
+      [name, location, region, price, price_level, type, description,
+       toBool(cottage_available), cottage_count || 0, cottage_price || '0',
+       toBool(room_available), room_count || 0, room_price || '0',
+       water_temp || null, weather_info || null,
+       beachId]
+    );
+
+    // Delete removed images
+    if (deletedImages) {
+      let idsToDelete = [];
+      try {
+        idsToDelete = Array.isArray(deletedImages) ? deletedImages.map(id => parseInt(id)) : JSON.parse(deletedImages).map(id => parseInt(id));
+      } catch (e) {
+        idsToDelete = [];
+      }
+
+      if (idsToDelete.length > 0) {
+        const { rows: imagesToDelete } = await client.query(
+          'SELECT * FROM beach_images WHERE id = ANY($1::int[]) AND beach_id = $2',
+          [idsToDelete, beachId]
+        );
+
+        for (const img of imagesToDelete) {
+          if (img.image_path && img.image_path.includes('cloudinary')) {
+            try {
+              const urlParts = img.image_path.split('/');
+              const uploadIndex = urlParts.findIndex(p => p === 'upload');
+              if (uploadIndex !== -1) {
+                const publicIdParts = urlParts.slice(uploadIndex + 2);
+                const publicId = publicIdParts.join('/').replace(/\.[^/.]+$/, '');
+                await cloudinary.uploader.destroy(publicId);
+              }
+            } catch (err) {
+              console.warn('Could not delete from Cloudinary:', img.image_path, err.message);
+            }
+          } else {
+            try {
+              const filePath = path.join(__dirname, '../..', img.image_path.replace(/^\//, ''));
+              await fs.unlink(filePath);
+            } catch (err) {
+              console.warn('Could not delete file:', img.image_path, err.message);
+            }
+          }
+        }
+
+        await client.query(
+          'DELETE FROM beach_images WHERE id = ANY($1::int[]) AND beach_id = $2',
+          [idsToDelete, beachId]
+        );
+      }
+    }
+
+    // Add new images
+    let primaryImage = null;
+    if (req.files && req.files.length > 0) {
+      const { rows: existingImages } = await client.query(
+        'SELECT * FROM beach_images WHERE beach_id = $1',
+        [beachId]
+      );
+
+      let valuePlaceholders = [];
+      let valueParams = [];
+      req.files.forEach((file, index) => {
+        const base = index * 3;
+        const isPrimary = existingImages.length === 0 && index === 0;
+        valuePlaceholders.push(`($${base + 1}, $${base + 2}, $${base + 3})`);
+        valueParams.push(beachId, file.path, isPrimary);
+      });
+
+      await client.query(
+        `INSERT INTO beach_images (beach_id, image_path, is_primary) VALUES ${valuePlaceholders.join(', ')}`,
+        valueParams
+      );
+
+      if (existingImages.length === 0) {
+        primaryImage = req.files[0].path;
+      }
+    }
+
+    // Set primary image
+    if (primaryImageId) {
+      await client.query(
+        'UPDATE beach_images SET is_primary = FALSE WHERE beach_id = $1',
+        [beachId]
+      );
+      await client.query(
+        'UPDATE beach_images SET is_primary = TRUE WHERE id = $1 AND beach_id = $2',
+        [primaryImageId, beachId]
+      );
+
+      const { rows: primaryRows } = await client.query(
+        'SELECT image_path FROM beach_images WHERE id = $1 AND beach_id = $2',
+        [primaryImageId, beachId]
+      );
+
+      if (primaryRows.length > 0) {
+        primaryImage = primaryRows[0].image_path;
+      }
+    }
+
+    // Update beach primary image
+    if (primaryImage) {
+      await client.query(
+        'UPDATE beaches SET image = $1 WHERE id = $2',
+        [primaryImage, beachId]
+      );
+    }
+
+    await client.query('COMMIT');
+
+    const { rows: updatedBeach } = await db.query('SELECT * FROM beaches WHERE id = $1', [beachId]);
+    const { rows: updatedImages } = await db.query(
+      'SELECT * FROM beach_images WHERE beach_id = $1 ORDER BY is_primary DESC, created_at ASC',
+      [beachId]
+    );
+    const response = updatedBeach[0];
+    response.images = updatedImages;
+    res.json(response);
+  } catch (err) {
+    await client.query('ROLLBACK');
+    console.error('Owner update beach error:', err);
+    res.status(500).json({ message: 'Server error' });
+  } finally {
+    client.release();
   }
 });
 

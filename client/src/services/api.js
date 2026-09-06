@@ -136,6 +136,9 @@ export const reportsAPI = {
 export const ownerAPI = {
   getDashboard: () => api.get('/owner/dashboard'),
   getBeach: () => api.get('/owner/beach'),
+  updateBeach: (data) => api.put('/owner/beach', data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
   getBookings: (params) => api.get('/owner/bookings', { params }),
   updateBookingStatus: (id, status) => api.put(`/owner/bookings/${id}/status`, { status }),
   deleteBooking: (id) => api.delete(`/owner/bookings/${id}`),

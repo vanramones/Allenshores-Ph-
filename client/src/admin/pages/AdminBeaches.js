@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Row, Col, Card, Form, InputGroup, Button, Badge, Modal } from 'react-bootstrap';
-import { FaSearch, FaPlus, FaEdit, FaTrash, FaStar, FaMapMarkerAlt, FaEye, FaImage, FaCheckCircle, FaTimes, FaMoneyBillWave, FaTag, FaCalendarAlt, FaHome, FaBed, FaThermometerHalf } from 'react-icons/fa';
+import { FaSearch, FaStar, FaMapMarkerAlt, FaEye, FaImage, FaCheckCircle, FaMoneyBillWave, FaTag, FaCalendarAlt, FaHome, FaBed, FaThermometerHalf, FaLock } from 'react-icons/fa';
 import { beachesAPI } from '../../services/api';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
@@ -9,35 +9,8 @@ const AdminBeaches = () => {
   const [beaches, setBeaches] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
-  const [showModal, setShowModal] = useState(false);
   const [showViewModal, setShowViewModal] = useState(false);
   const [viewBeach, setViewBeach] = useState(null);
-  const [editingBeach, setEditingBeach] = useState(null);
-  const [formData, setFormData] = useState({
-    name: '',
-    location: '',
-    region: 'Allen',
-    rating: 0,
-    reviews_count: 0,
-    price: '',
-    price_level: 'Budget',
-    type: 'Beach',
-    description: '',
-    cottage_available: false,
-    cottage_count: 0,
-    cottage_price: '0',
-    room_available: false,
-    room_count: 0,
-    room_price: '0',
-    water_temp: '',
-    weather_info: ''
-  });
-  const [imageFiles, setImageFiles] = useState([]);
-  const [imagePreviews, setImagePreviews] = useState([]);
-  const [existingImages, setExistingImages] = useState([]);
-  const [deletedImages, setDeletedImages] = useState([]);
-  const [primaryImageId, setPrimaryImageId] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     fetchBeaches();
@@ -59,158 +32,6 @@ const AdminBeaches = () => {
     fetchBeaches();
   };
 
-  const openModal = async (beach = null) => {
-    if (beach) {
-      try {
-        const response = await beachesAPI.getById(beach.id);
-        const fullBeach = response.data;
-
-        setEditingBeach(beach);
-        setFormData({
-          name: fullBeach.name || '',
-          location: fullBeach.location || '',
-          region: fullBeach.region || 'Allen',
-          rating: fullBeach.rating || 0,
-          reviews_count: fullBeach.reviews_count || 0,
-          price: fullBeach.price || '',
-          price_level: fullBeach.price_level || 'Budget',
-          type: fullBeach.type || 'Beach',
-          description: fullBeach.description || '',
-          cottage_available: !!fullBeach.cottage_available,
-          cottage_count: fullBeach.cottage_count || 0,
-          cottage_price: fullBeach.cottage_price || '0',
-          room_available: !!fullBeach.room_available,
-          room_count: fullBeach.room_count || 0,
-          room_price: fullBeach.room_price || '0',
-          water_temp: fullBeach.water_temp || '',
-          weather_info: fullBeach.weather_info || ''
-        });
-        setExistingImages(fullBeach.images || []);
-        setDeletedImages([]);
-        setPrimaryImageId(fullBeach.images?.find(img => img.is_primary)?.id || null);
-      } catch (error) {
-        console.error('Error fetching beach details:', error);
-        toast.error('Failed to load beach details');
-      }
-    } else {
-      setEditingBeach(null);
-      setFormData({
-        name: '',
-        location: '',
-        region: 'Allen',
-        rating: 0,
-        reviews_count: 0,
-        price: '',
-        price_level: 'Budget',
-        type: 'Beach',
-        description: '',
-        cottage_available: false,
-        cottage_count: 0,
-        cottage_price: '0',
-        room_available: false,
-        room_count: 0,
-        room_price: '0',
-        water_temp: '',
-        weather_info: ''
-      });
-      setExistingImages([]);
-      setDeletedImages([]);
-      setPrimaryImageId(null);
-    }
-    setImageFiles([]);
-    setImagePreviews([]);
-    setShowModal(true);
-  };
-
-  const handleChange = (e) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({ ...prev, [name]: value }));
-  };
-
-  const handleImageChange = (e) => {
-    const files = Array.from(e.target.files);
-    if (files.length === 0) return;
-
-    // Append to existing files instead of replacing
-    setImageFiles(prev => [...prev, ...files]);
-    const newPreviews = files.map(file => URL.createObjectURL(file));
-    setImagePreviews(prev => [...prev, ...newPreviews]);
-  };
-
-  const handleRemoveNewImage = (index) => {
-    const newFiles = [...imageFiles];
-    newFiles.splice(index, 1);
-    setImageFiles(newFiles);
-
-    const newPreviews = [...imagePreviews];
-    if (newPreviews[index]) URL.revokeObjectURL(newPreviews[index]);
-    newPreviews.splice(index, 1);
-    setImagePreviews(newPreviews);
-  };
-
-  const handleRemoveExistingImage = (imageId) => {
-    setDeletedImages([...deletedImages, imageId]);
-    setExistingImages(existingImages.filter(img => img.id !== imageId));
-    if (primaryImageId === imageId) {
-      const remaining = existingImages.filter(img => img.id !== imageId);
-      setPrimaryImageId(remaining.length > 0 ? remaining[0].id : null);
-    }
-  };
-
-  const handleSetPrimary = (imageId) => {
-    setPrimaryImageId(imageId);
-  };
-
-  const handleSubmit = async (e) => {
-    e.preventDefault();
-    setSubmitting(true);
-
-    try {
-      const data = new FormData();
-      Object.entries(formData).forEach(([key, value]) => {
-        data.append(key, value);
-      });
-
-      imageFiles.forEach(file => {
-        data.append('images', file);
-      });
-
-      if (deletedImages.length > 0) {
-        data.append('deletedImages', JSON.stringify(deletedImages));
-      }
-
-      if (primaryImageId) {
-        data.append('primaryImageId', primaryImageId);
-      }
-
-      if (editingBeach) {
-        await beachesAPI.update(editingBeach.id, data);
-        toast.success('Beach updated successfully');
-      } else {
-        await beachesAPI.create(data);
-        toast.success('Beach created successfully');
-      }
-      setShowModal(false);
-      fetchBeaches();
-    } catch (error) {
-      toast.error(error.response?.data?.message || 'Failed to save beach');
-    } finally {
-      setSubmitting(false);
-    }
-  };
-
-  const handleDelete = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this beach?')) return;
-
-    try {
-      await beachesAPI.delete(id);
-      toast.success('Beach deleted successfully');
-      fetchBeaches();
-    } catch (error) {
-      toast.error('Failed to delete beach');
-    }
-  };
-
   const handleView = async (beach) => {
     try {
       const response = await beachesAPI.getById(beach.id);
@@ -223,10 +44,7 @@ const AdminBeaches = () => {
   };
 
   const handleEditFromView = () => {
-    setShowViewModal(false);
-    if (viewBeach) {
-      openModal(viewBeach);
-    }
+    toast.info('Beach editing is now managed by beach owners only.');
   };
 
   const getPriceBadgeClass = (level) => {
@@ -245,11 +63,10 @@ const AdminBeaches = () => {
   return (
     <div className="admin-beaches fade-in">
       <div className="admin-page-actions mb-4">
-        <h2 className="admin-page-heading mb-0">Manage Beaches</h2>
-        <Button variant="primary" onClick={() => openModal()} className="admin-add-btn">
-          <FaPlus className="me-2" />
-          Add Beach
-        </Button>
+        <h2 className="admin-page-heading mb-0">Beaches</h2>
+        <Badge bg="secondary" className="d-flex align-items-center gap-1 p-2">
+          <FaLock className="me-1" /> Read-Only (Owners manage their own beaches)
+        </Badge>
       </div>
 
       {/* Search */}
@@ -276,7 +93,6 @@ const AdminBeaches = () => {
         <div className="admin-empty-state-box">
           <FaImage className="admin-empty-icon" />
           <h4>No beaches found</h4>
-          <Button variant="primary" onClick={() => openModal()}>Add First Beach</Button>
         </div>
       ) : (
         <Row className="g-4">
@@ -334,20 +150,6 @@ const AdminBeaches = () => {
                       >
                         <FaEye />
                       </Button>
-                      <Button 
-                        variant="outline-primary" 
-                        size="sm"
-                        onClick={() => openModal(beach)}
-                      >
-                        <FaEdit />
-                      </Button>
-                      <Button 
-                        variant="outline-danger" 
-                        size="sm"
-                        onClick={() => handleDelete(beach.id)}
-                      >
-                        <FaTrash />
-                      </Button>
                     </div>
                   </div>
                 </Card.Body>
@@ -356,318 +158,6 @@ const AdminBeaches = () => {
           ))}
         </Row>
       )}
-
-      {/* Add/Edit Modal */}
-      <Modal show={showModal} onHide={() => setShowModal(false)} size="lg" className="admin-beach-modal">
-        <Modal.Header closeButton>
-          <Modal.Title>{editingBeach ? 'Edit Beach' : 'Add New Beach'}</Modal.Title>
-        </Modal.Header>
-        <Form onSubmit={handleSubmit}>
-          <Modal.Body>
-            <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Beach Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="name"
-                    value={formData.name}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Location *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="location"
-                    value={formData.location}
-                    onChange={handleChange}
-                    required
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Region</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="region"
-                    value={formData.region}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Price</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="price"
-                    value={formData.price}
-                    onChange={handleChange}
-                    placeholder="e.g., 150"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Price Level</Form.Label>
-                  <Form.Select
-                    name="price_level"
-                    value={formData.price_level}
-                    onChange={handleChange}
-                  >
-                    <option value="Budget">Budget</option>
-                    <option value="Moderate">Moderate</option>
-                    <option value="Premium">Premium</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col xs={12}>
-                <Form.Group>
-                  <Form.Label>Beach Type</Form.Label>
-                  <Form.Select
-                    name="type"
-                    value={formData.type}
-                    onChange={handleChange}
-                  >
-                    <option value="Beach">Beach</option>
-                    <option value="White Sand">White Sand</option>
-                    <option value="Rocky">Rocky</option>
-                    <option value="Cove">Cove</option>
-                    <option value="Resort">Resort</option>
-                  </Form.Select>
-                </Form.Group>
-              </Col>
-              <Col xs={12}>
-                <Form.Group>
-                  <Form.Label>Description</Form.Label>
-                  <Form.Control
-                    as="textarea"
-                    rows={3}
-                    name="description"
-                    value={formData.description}
-                    onChange={handleChange}
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Cottage Availability */}
-              <Col xs={12}>
-                <div className="admin-form-section-title">
-                  <FaHome className="me-2" /> Cottage Availability
-                </div>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Check
-                    type="checkbox"
-                    label="Cottages Available"
-                    name="cottage_available"
-                    checked={formData.cottage_available}
-                    onChange={(e) => setFormData(prev => ({ ...prev, cottage_available: e.target.checked }))}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Cottage Count</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="cottage_count"
-                    value={formData.cottage_count}
-                    onChange={handleChange}
-                    min="0"
-                    disabled={!formData.cottage_available}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Cottage Price (₱)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="cottage_price"
-                    value={formData.cottage_price}
-                    onChange={handleChange}
-                    placeholder="e.g., 300"
-                    disabled={!formData.cottage_available}
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Room Availability */}
-              <Col xs={12}>
-                <div className="admin-form-section-title mt-2">
-                  <FaBed className="me-2" /> Room Availability
-                </div>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Check
-                    type="checkbox"
-                    label="Rooms Available"
-                    name="room_available"
-                    checked={formData.room_available}
-                    onChange={(e) => setFormData(prev => ({ ...prev, room_available: e.target.checked }))}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Room Count</Form.Label>
-                  <Form.Control
-                    type="number"
-                    name="room_count"
-                    value={formData.room_count}
-                    onChange={handleChange}
-                    min="0"
-                    disabled={!formData.room_available}
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={4}>
-                <Form.Group>
-                  <Form.Label>Room Price (₱)</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="room_price"
-                    value={formData.room_price}
-                    onChange={handleChange}
-                    placeholder="e.g., 500"
-                    disabled={!formData.room_available}
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Weather & Temperature */}
-              <Col xs={12}>
-                <div className="admin-form-section-title mt-2">
-                  <FaThermometerHalf className="me-2" /> Weather & Water Temperature
-                </div>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Water Temperature</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="water_temp"
-                    value={formData.water_temp}
-                    onChange={handleChange}
-                    placeholder="e.g., 28°C"
-                  />
-                </Form.Group>
-              </Col>
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Weather Info</Form.Label>
-                  <Form.Control
-                    type="text"
-                    name="weather_info"
-                    value={formData.weather_info}
-                    onChange={handleChange}
-                    placeholder="e.g., Sunny, Calm waters"
-                  />
-                </Form.Group>
-              </Col>
-
-              {/* Image Upload */}
-              <Col xs={12}>
-                <Form.Group className="mb-3">
-                  <Form.Label>
-                    <FaImage className="me-2" />
-                    Beach Images
-                  </Form.Label>
-                  <Form.Control
-                    type="file"
-                    multiple
-                    accept="image/*"
-                    onChange={handleImageChange}
-                    className="admin-image-input"
-                  />
-                  <Form.Text className="text-muted">
-                    You can upload multiple images. First image will be the primary image.
-                  </Form.Text>
-                </Form.Group>
-
-                {/* New Image Previews */}
-                {imagePreviews.length > 0 && (
-                  <div className="admin-image-preview-list mb-3">
-                    <p className="admin-image-section-title">New Images</p>
-                    <Row className="g-2">
-                      {imagePreviews.map((preview, index) => (
-                        <Col xs={6} md={4} lg={3} key={index}>
-                          <div className="admin-image-preview-wrap">
-                            <img src={preview} alt={`New ${index + 1}`} className="admin-image-preview" />
-                            <button
-                              type="button"
-                              className="admin-image-remove"
-                              onClick={() => handleRemoveNewImage(index)}
-                            >
-                              <FaTimes />
-                            </button>
-                            {index === 0 && (
-                              <span className="admin-image-primary-badge">
-                                <FaCheckCircle className="me-1" /> Primary
-                              </span>
-                            )}
-                          </div>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                )}
-
-                {/* Existing Images */}
-                {existingImages.length > 0 && (
-                  <div className="admin-image-preview-list">
-                    <p className="admin-image-section-title">Existing Images</p>
-                    <Row className="g-2">
-                      {existingImages.map((img) => (
-                        <Col xs={6} md={4} lg={3} key={img.id}>
-                          <div className={`admin-image-preview-wrap ${primaryImageId === img.id ? 'is-primary' : ''}`}>
-                            <img src={img.image_path} alt={`Beach ${img.id}`} className="admin-image-preview" />
-                            <button
-                              type="button"
-                              className="admin-image-remove"
-                              onClick={() => handleRemoveExistingImage(img.id)}
-                            >
-                              <FaTimes />
-                            </button>
-                            <button
-                              type="button"
-                              className="admin-image-primary-btn"
-                              onClick={() => handleSetPrimary(img.id)}
-                              title="Set as primary"
-                            >
-                              {primaryImageId === img.id ? (
-                                <><FaCheckCircle className="me-1" /> Primary</>
-                              ) : (
-                                'Set Primary'
-                              )}
-                            </button>
-                          </div>
-                        </Col>
-                      ))}
-                    </Row>
-                  </div>
-                )}
-              </Col>
-            </Row>
-          </Modal.Body>
-          <Modal.Footer>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>
-              Cancel
-            </Button>
-            <Button type="submit" variant="primary" disabled={submitting}>
-              {submitting ? 'Saving...' : (editingBeach ? 'Update Beach' : 'Create Beach')}
-            </Button>
-          </Modal.Footer>
-        </Form>
-      </Modal>
 
       {/* View Modal */}
       <Modal show={showViewModal} onHide={() => setShowViewModal(false)} size="lg" className="admin-beach-modal">
@@ -773,9 +263,6 @@ const AdminBeaches = () => {
         <Modal.Footer>
           <Button variant="secondary" onClick={() => setShowViewModal(false)}>
             Close
-          </Button>
-          <Button variant="primary" onClick={handleEditFromView}>
-            <FaEdit className="me-1" /> Edit Beach
           </Button>
         </Modal.Footer>
       </Modal>
