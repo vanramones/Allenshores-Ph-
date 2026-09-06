@@ -3,7 +3,8 @@ import { Link, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { Nav, Button, Dropdown, Badge } from 'react-bootstrap';
 import {
   FaTachometerAlt, FaCalendarCheck, FaStar, FaFileAlt, FaEdit,
-  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaUmbrellaBeach, FaBell
+  FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaUmbrellaBeach, FaBell,
+  FaUser, FaCalendarAlt, FaUsers, FaArrowRight, FaCheckCircle, FaEnvelope
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { ownerAPI } from '../../services/api';
@@ -50,26 +51,29 @@ const defaultTheme = ownerThemes[2];
 
 const OwnerLayout = ({ children }) => {
   const [sidebarOpen, setSidebarOpen] = useState(false);
-  const [pendingCount, setPendingCount] = useState(0);
+  const [pendingBookings, setPendingBookings] = useState([]);
+  const [showNotifications, setShowNotifications] = useState(false);
   const { owner, logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
 
-  // Fetch pending bookings count for notification bell
+  // Fetch pending bookings for notification bell
   useEffect(() => {
-    const fetchPendingCount = async () => {
+    const fetchPendingBookings = async () => {
       try {
         const response = await ownerAPI.getBookings({ status: 'pending' });
-        setPendingCount(response.data.length);
+        setPendingBookings(response.data.slice(0, 5)); // Show max 5 in dropdown
       } catch (error) {
-        console.error('Error fetching pending count:', error);
+        console.error('Error fetching pending bookings:', error);
       }
     };
-    fetchPendingCount();
+    fetchPendingBookings();
     // Refresh every 30 seconds
-    const interval = setInterval(fetchPendingCount, 30000);
+    const interval = setInterval(fetchPendingBookings, 30000);
     return () => clearInterval(interval);
   }, []);
+
+  const pendingCount = pendingBookings.length;
 
   const handleLogout = () => {
     logout();
@@ -145,25 +149,93 @@ const OwnerLayout = ({ children }) => {
           </div>
 
           <div className="admin-topbar-right">
-            {/* Notification Bell */}
-            <Button
-              variant="light"
-              className="admin-notification-btn position-relative me-2"
-              onClick={() => navigate('/owner/bookings')}
-              title="Pending Bookings"
+            {/* Notification Bell Dropdown */}
+            <Dropdown 
+              align="end" 
+              show={showNotifications} 
+              onToggle={(isOpen) => setShowNotifications(isOpen)}
+              className="notification-dropdown me-2"
             >
-              <FaBell />
-              {pendingCount > 0 && (
-                <Badge
-                  bg="danger"
-                  pill
-                  className="position-absolute"
-                  style={{ top: '-5px', right: '-5px', fontSize: '0.65rem' }}
-                >
-                  {pendingCount > 9 ? '9+' : pendingCount}
-                </Badge>
-              )}
-            </Button>
+              <Dropdown.Toggle
+                variant="light"
+                className="admin-notification-btn position-relative"
+                id="notification-dropdown"
+              >
+                <FaBell />
+                {pendingCount > 0 && (
+                  <Badge
+                    bg="danger"
+                    pill
+                    className="position-absolute"
+                    style={{ top: '-5px', right: '-5px', fontSize: '0.65rem' }}
+                  >
+                    {pendingCount > 9 ? '9+' : pendingCount}
+                  </Badge>
+                )}
+              </Dropdown.Toggle>
+
+              <Dropdown.Menu className="notification-menu">
+                <div className="notification-header">
+                  <h6 className="mb-0">
+                    <FaBell className="me-2" />
+                    Pending Bookings
+                  </h6>
+                  {pendingCount > 0 && (
+                    <Badge bg="danger" pill>{pendingCount}</Badge>
+                  )}
+                </div>
+
+                <div className="notification-body">
+                  {pendingBookings.length === 0 ? (
+                    <div className="notification-empty">
+                      <FaCheckCircle className="text-success mb-2" style={{ fontSize: '2rem' }} />
+                      <p className="mb-0">No pending bookings</p>
+                      <small className="text-muted">All caught up!</small>
+                    </div>
+                  ) : (
+                    pendingBookings.map((booking) => (
+                      <div
+                        key={booking.id}
+                        className="notification-item"
+                        onClick={() => {
+                          setShowNotifications(false);
+                          navigate('/owner/bookings', { state: { highlightBooking: booking.id } });
+                        }}
+                      >
+                        <div className="notification-avatar" style={{ background: theme.primary }}>
+                          <FaUser />
+                        </div>
+                        <div className="notification-content">
+                          <div className="notification-title">{booking.full_name}</div>
+                          <div className="notification-meta">
+                            <span><FaCalendarAlt className="me-1" />{new Date(booking.visit_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}</span>
+                            <span><FaUsers className="me-1" />{booking.people} guests</span>
+                          </div>
+                          <div className="notification-ref">{booking.booking_ref}</div>
+                        </div>
+                        <Badge bg="warning" className="notification-badge">Pending</Badge>
+                      </div>
+                    ))
+                  )}
+                </div>
+
+                {pendingBookings.length > 0 && (
+                  <div className="notification-footer">
+                    <Button
+                      variant="link"
+                      className="w-100 text-decoration-none"
+                      onClick={() => {
+                        setShowNotifications(false);
+                        navigate('/owner/bookings');
+                      }}
+                      style={{ color: theme.primary }}
+                    >
+                      View All Bookings <FaArrowRight className="ms-1" />
+                    </Button>
+                  </div>
+                )}
+              </Dropdown.Menu>
+            </Dropdown>
 
             <a
               href="/"
