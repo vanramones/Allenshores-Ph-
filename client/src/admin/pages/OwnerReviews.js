@@ -103,8 +103,7 @@ const OwnerReviews = () => {
               currentReviews.map(review => (
                 <tr key={review.id}>
                   <td>
-                    <div className="fw-semibold">{review.reviewer_name || 'Anonymous'}</div>
-                    <small className="text-muted">{review.reviewer_email || ''}</small>
+                    <div className="fw-semibold">{review.author || 'Anonymous'}</div>
                   </td>
                   <td>
                     <div className="d-flex align-items-center gap-1">
@@ -178,10 +177,7 @@ const OwnerReviews = () => {
           {viewReview && (
             <div>
               <div className="mb-3">
-                <strong>Reviewer:</strong> {viewReview.reviewer_name || 'Anonymous'}
-              </div>
-              <div className="mb-3">
-                <strong>Email:</strong> {viewReview.reviewer_email || 'N/A'}
+                <strong>Reviewer:</strong> {viewReview.author || 'Anonymous'}
               </div>
               <div className="mb-3">
                 <strong>Rating:</strong>
