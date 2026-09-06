@@ -119,6 +119,60 @@ router.get('/verify', async (req, res) => {
   }
 });
 
+// @route   POST /api/auth/staff-login
+// @desc    Beach staff/admin login (sub-accounts created by beach owners)
+// @access  Public
+router.post('/staff-login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
+
+    if (!username || !password) {
+      return res.status(400).json({ message: 'Please provide username and password' });
+    }
+
+    const { rows } = await db.query(`
+      SELECT ba.*, b.name as beach_name, b.location as beach_location
+      FROM beach_admins ba
+      JOIN beaches b ON ba.beach_id = b.id
+      WHERE ba.username = $1 AND ba.is_active = true
+    `, [username]);
+
+    if (rows.length === 0) {
+      return res.status(401).json({ message: 'Invalid credentials or account disabled' });
+    }
+
+    const staff = rows[0];
+    const isMatch = await bcrypt.compare(password, staff.password);
+
+    if (!isMatch) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
+
+    const token = jwt.sign(
+      { id: staff.id, username: staff.username, beach_id: staff.beach_id, role: 'owner', staff_role: staff.role },
+      process.env.JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    res.json({
+      token,
+      owner: {
+        id: staff.id,
+        username: staff.username,
+        beach_id: staff.beach_id,
+        beach_name: staff.beach_name,
+        beach_location: staff.beach_location,
+        full_name: staff.full_name,
+        role: 'owner',
+        staff_role: staff.role
+      }
+    });
+  } catch (err) {
+    console.error('Staff login error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
 // @route   GET /api/auth/owner-beaches
 // @desc    Get list of beaches that have owner accounts (for login page)
 // @access  Public

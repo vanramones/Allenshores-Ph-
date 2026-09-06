@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
   const navigate = useNavigate();
-  const { login, ownerLogin } = useAuth();
+  const { login, ownerLogin, staffLogin } = useAuth();
 
   // Super Admin login state
   const [credentials, setCredentials] = useState({ username: '', password: '' });
@@ -59,10 +59,21 @@ const Login = () => {
     try {
       const beach = beachOptions.find(b => b.key === selectedBeach);
       const username = ownerCreds.username || beach?.username || '';
-      await ownerLogin(username, ownerCreds.password);
+      
+      // Try owner login first, then staff login
+      try {
+        await ownerLogin(username, ownerCreds.password);
+      } catch (ownerErr) {
+        // If owner login fails, try staff login
+        try {
+          await staffLogin(username, ownerCreds.password);
+        } catch (staffErr) {
+          throw ownerErr; // Show owner error
+        }
+      }
       navigate('/owner/dashboard');
     } catch (err) {
-      setOwnerError(err.response?.data?.message || 'Invalid owner credentials');
+      setOwnerError(err.response?.data?.message || 'Invalid credentials');
     } finally {
       setOwnerLoading(false);
     }
@@ -281,14 +292,14 @@ const Login = () => {
                     <Form.Group className="admin-form-group">
                       <Form.Label className="admin-form-label">
                         <FaUser className="me-2" />
-                        Owner Username
+                        Username (Owner or Staff)
                       </Form.Label>
                       <Form.Control
                         type="text"
                         name="username"
                         value={ownerCreds.username}
                         onChange={(e) => setOwnerCreds({ ...ownerCreds, username: e.target.value })}
-                        placeholder="Enter owner username"
+                        placeholder="Enter username"
                         required
                         autoFocus
                         className="admin-form-control"
@@ -298,7 +309,7 @@ const Login = () => {
                     <Form.Group className="admin-form-group">
                       <Form.Label className="admin-form-label">
                         <FaLock className="me-2" />
-                        Owner Password
+                        Password
                       </Form.Label>
                       <div className="password-input-wrapper">
                         <Form.Control

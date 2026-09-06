@@ -74,6 +74,15 @@ export const AuthProvider = ({ children }) => {
     return owner;
   };
 
+  const staffLogin = async (username, password) => {
+    const response = await authAPI.staffLogin({ username, password });
+    const { token, owner } = response.data;
+    localStorage.setItem('ownerToken', token);
+    localStorage.setItem('ownerUser', JSON.stringify(owner));
+    setOwner(owner);
+    return owner;
+  };
+
   const logout = () => {
     localStorage.removeItem('adminToken');
     localStorage.removeItem('adminUser');
@@ -89,6 +98,7 @@ export const AuthProvider = ({ children }) => {
     loading,
     login,
     ownerLogin,
+    staffLogin,
     logout,
     isAuthenticated: !!admin || !!owner,
     isAdmin: !!admin,

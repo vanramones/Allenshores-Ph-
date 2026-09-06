@@ -37,6 +37,7 @@ import OwnerBeachEdit from './admin/pages/OwnerBeachEdit';
 import OwnerBookings from './admin/pages/OwnerBookings';
 import OwnerReviews from './admin/pages/OwnerReviews';
 import OwnerReports from './admin/pages/OwnerReports';
+import OwnerAdminAccounts from './admin/pages/OwnerAdminAccounts';
 
 // Protected Route Component (Admin)
 const ProtectedRoute = ({ children }) => {
@@ -122,6 +123,7 @@ function App() {
             <Route path="/owner/beach" element={<OwnerRoute><OwnerBeachEdit /></OwnerRoute>} />
             <Route path="/owner/bookings" element={<OwnerRoute><OwnerBookings /></OwnerRoute>} />
             <Route path="/owner/reviews" element={<OwnerRoute><OwnerReviews /></OwnerRoute>} />
+            <Route path="/owner/admins" element={<OwnerRoute><OwnerAdminAccounts /></OwnerRoute>} />
             <Route path="/owner/reports" element={<OwnerRoute><OwnerReports /></OwnerRoute>} />
 
             {/* 404 */}

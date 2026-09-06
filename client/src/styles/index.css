@@ -4594,6 +4594,15 @@ body {
   margin-bottom: 0.5rem;
 }
 
+/* Admin Info Card */
+.admin-info-card {
+  border: 1px solid;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  color: #475569;
+}
+
 /* Notification Button & Dropdown */
 .notification-dropdown .dropdown-toggle::after {
   display: none;

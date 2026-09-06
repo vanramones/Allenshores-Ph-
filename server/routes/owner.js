@@ -6,6 +6,7 @@ const { sendEmail, getLogoDataUri } = require('../utils/email');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs').promises;
+const bcrypt = require('bcryptjs');
 
 // Cloudinary setup for image uploads (works on Vercel)
 const cloudinary = require('cloudinary').v2;
@@ -813,6 +814,160 @@ router.post('/bookings/:id/email', async (req, res) => {
   } catch (err) {
     console.error('Owner send email error:', err);
     res.status(500).json({ message: err.message || 'Failed to send email' });
+  }
+});
+
+// ═══════════════════════════════════════════════════════════
+// BEACH ADMIN ACCOUNTS - CRUD for sub-admin accounts
+// ═══════════════════════════════════════════════════════════
+
+// @route   GET /api/owner/admins
+// @desc    Get all admin accounts for owner's beach
+// @access  Private (Owner)
+router.get('/admins', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { rows } = await db.query(`
+      SELECT ba.id, ba.username, ba.full_name, ba.email, ba.role, ba.is_active, ba.created_at,
+             b.name as beach_name
+      FROM beach_admins ba
+      LEFT JOIN beaches b ON ba.beach_id = b.id
+      WHERE ba.beach_id = $1
+      ORDER BY ba.created_at DESC
+    `, [beachId]);
+
+    res.json(rows);
+  } catch (err) {
+    console.error('Get beach admins error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   POST /api/owner/admins
+// @desc    Create a new admin account for owner's beach
+// @access  Private (Owner)
+router.post('/admins', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { username, password, full_name, email, role } = req.body;
+
+    if (!username || !password || !full_name) {
+      return res.status(400).json({ message: 'Username, password, and full name are required' });
+    }
+
+    // Check if username already exists in beach_admins
+    const { rows: existing } = await db.query(
+      'SELECT id FROM beach_admins WHERE username = $1', [username]
+    );
+    if (existing.length > 0) {
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    // Also check beach_owners to avoid conflicts
+    const { rows: existingOwner } = await db.query(
+      'SELECT id FROM beach_owners WHERE username = $1', [username]
+    );
+    if (existingOwner.length > 0) {
+      return res.status(400).json({ message: 'Username already exists' });
+    }
+
+    const salt = await bcrypt.genSalt(10);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    const { rows } = await db.query(`
+      INSERT INTO beach_admins (beach_id, username, password, full_name, email, role)
+      VALUES ($1, $2, $3, $4, $5, $6)
+      RETURNING id, username, full_name, email, role, is_active, created_at
+    `, [beachId, username, hashedPassword, full_name, email || null, role || 'staff']);
+
+    res.status(201).json(rows[0]);
+  } catch (err) {
+    console.error('Create beach admin error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   PUT /api/owner/admins/:id
+// @desc    Update an admin account
+// @access  Private (Owner)
+router.put('/admins/:id', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { id } = req.params;
+    const { full_name, email, role, is_active, password } = req.body;
+
+    // Verify the admin belongs to this owner's beach
+    const { rows: check } = await db.query(
+      'SELECT * FROM beach_admins WHERE id = $1 AND beach_id = $2', [id, beachId]
+    );
+    if (check.length === 0) {
+      return res.status(404).json({ message: 'Admin account not found' });
+    }
+
+    if (password) {
+      // Update with new password
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(password, salt);
+      const { rows } = await db.query(`
+        UPDATE beach_admins
+        SET full_name = $1, email = $2, role = $3, is_active = $4, password = $5, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $6 AND beach_id = $7
+        RETURNING id, username, full_name, email, role, is_active, created_at
+      `, [full_name, email || null, role || 'staff', is_active !== undefined ? is_active : true, hashedPassword, id, beachId]);
+      res.json(rows[0]);
+    } else {
+      // Update without password
+      const { rows } = await db.query(`
+        UPDATE beach_admins
+        SET full_name = $1, email = $2, role = $3, is_active = $4, updated_at = CURRENT_TIMESTAMP
+        WHERE id = $5 AND beach_id = $6
+        RETURNING id, username, full_name, email, role, is_active, created_at
+      `, [full_name, email || null, role || 'staff', is_active !== undefined ? is_active : true, id, beachId]);
+      res.json(rows[0]);
+    }
+  } catch (err) {
+    console.error('Update beach admin error:', err);
+    res.status(500).json({ message: 'Server error' });
+  }
+});
+
+// @route   DELETE /api/owner/admins/:id
+// @desc    Delete an admin account
+// @access  Private (Owner)
+router.delete('/admins/:id', async (req, res) => {
+  try {
+    const beachId = req.beachId;
+    if (!beachId) {
+      return res.status(403).json({ message: 'Beach owner access required' });
+    }
+
+    const { id } = req.params;
+
+    // Verify the admin belongs to this owner's beach
+    const { rows: check } = await db.query(
+      'SELECT * FROM beach_admins WHERE id = $1 AND beach_id = $2', [id, beachId]
+    );
+    if (check.length === 0) {
+      return res.status(404).json({ message: 'Admin account not found' });
+    }
+
+    await db.query('DELETE FROM beach_admins WHERE id = $1 AND beach_id = $2', [id, beachId]);
+    res.json({ message: 'Admin account deleted successfully' });
+  } catch (err) {
+    console.error('Delete beach admin error:', err);
+    res.status(500).json({ message: 'Server error' });
   }
 });
 

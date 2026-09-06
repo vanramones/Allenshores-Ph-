@@ -45,6 +45,7 @@ api.interceptors.response.use(
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
   ownerLogin: (credentials) => api.post('/auth/owner-login', credentials),
+  staffLogin: (credentials) => api.post('/auth/staff-login', credentials),
   verify: () => api.get('/auth/verify'),
   getOwnerBeaches: () => api.get('/auth/owner-beaches')
 };
@@ -156,7 +157,12 @@ export const ownerAPI = {
   getReportSummary: (params) => api.get('/owner/reports/summary', { params }),
   getReportBookings: (params) => api.get('/owner/reports/bookings', { params }),
   getReportMonthly: (params) => api.get('/owner/reports/monthly', { params }),
-  getReportReviews: (params) => api.get('/owner/reports/reviews', { params })
+  getReportReviews: (params) => api.get('/owner/reports/reviews', { params }),
+  // Admin Accounts (sub-admins for beach)
+  getAdmins: () => api.get('/owner/admins'),
+  createAdmin: (data) => api.post('/owner/admins', data),
+  updateAdmin: (id, data) => api.put(`/owner/admins/${id}`, data),
+  deleteAdmin: (id) => api.delete(`/owner/admins/${id}`)
 };
 
 export default api;

@@ -4,7 +4,7 @@ import { Nav, Button, Dropdown, Badge } from 'react-bootstrap';
 import {
   FaTachometerAlt, FaCalendarCheck, FaStar, FaFileAlt, FaEdit,
   FaSignOutAlt, FaBars, FaTimes, FaExternalLinkAlt, FaUmbrellaBeach, FaBell,
-  FaUser, FaCalendarAlt, FaUsers, FaArrowRight, FaCheckCircle, FaEnvelope
+  FaUser, FaCalendarAlt, FaUsers, FaArrowRight, FaCheckCircle, FaEnvelope, FaUserShield
 } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 import { ownerAPI } from '../../services/api';
@@ -85,6 +85,7 @@ const OwnerLayout = ({ children }) => {
     { path: '/owner/beach', icon: <FaEdit />, label: 'My Beach' },
     { path: '/owner/bookings', icon: <FaCalendarCheck />, label: 'Bookings' },
     { path: '/owner/reviews', icon: <FaStar />, label: 'Reviews' },
+    { path: '/owner/admins', icon: <FaUserShield />, label: 'Admin Accounts' },
     { path: '/owner/reports', icon: <FaFileAlt />, label: 'Reports' }
   ];
 
