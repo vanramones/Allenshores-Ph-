@@ -761,9 +761,9 @@ router.post('/bookings/:id/email', async (req, res) => {
       return res.status(400).json({ message: 'Subject and message are required' });
     }
 
-    // Verify booking belongs to owner's beach
+    // Verify booking belongs to owner's beach - get beach image too
     const { rows } = await db.query(
-      `SELECT bk.*, b.name as beach_name
+      `SELECT bk.*, b.name as beach_name, b.image as beach_image, b.location as beach_location
        FROM bookings bk
        LEFT JOIN beaches b ON bk.beach_id = b.id
        WHERE bk.id = $1 AND bk.beach_id = $2`,
@@ -776,6 +776,10 @@ router.post('/bookings/:id/email', async (req, res) => {
 
     const booking = rows[0];
     const logo = getLogoDataUri();
+    const beachImage = booking.beach_image || null;
+    const clientUrl = process.env.CLIENT_URL || 'https://allenshores-client.vercel.app';
+    const bookMoreLink = `${clientUrl}/beaches/${beachId}`;
+    const editBookingLink = `${clientUrl}/beaches/${beachId}`;
 
     // Get owner info for the email signature
     const { rows: ownerRows } = await db.query(
@@ -784,28 +788,81 @@ router.post('/bookings/:id/email', async (req, res) => {
     );
     const owner = ownerRows[0];
 
+    const visitDateFormatted = new Date(booking.visit_date).toLocaleDateString('en-US', {
+      year: 'numeric', month: 'long', day: 'numeric'
+    });
+
     await sendEmail({
       to: booking.email,
       subject: `${subject} - ${booking.beach_name}`,
-      text: `Hi ${booking.full_name},\n\n${message}\n\nBooking Reference: ${booking.booking_ref}\nBeach: ${booking.beach_name}\nVisit Date: ${booking.visit_date}\n\nBest regards,\n${owner.username}\n${booking.beach_name}\nAllenShores PH`,
+      text: `Hi ${booking.full_name},\n\n${message}\n\nBooking Reference: ${booking.booking_ref}\nBeach: ${booking.beach_name}\nVisit Date: ${visitDateFormatted}\n\nBook More: ${bookMoreLink}\nEdit Booking: ${editBookingLink}\n\nBest regards,\n${owner.username}\n${booking.beach_name}\nAllenShores PH`,
       html: `
-        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-          <div style="text-align: center; padding: 20px 0; border-bottom: 2px solid #d1fae5; margin-bottom: 20px;">
-            ${logo ? `<img src="${logo}" alt="AllenShores PH" width="48" height="48" style="border-radius: 12px;" />` : ''}
-            <h1 style="color: #0f766e; margin: 10px 0 0; font-size: 24px;">${booking.beach_name}</h1>
+        <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+          <!-- Beach Banner with Logo -->
+          <div style="position: relative; height: 200px; overflow: hidden;">
+            ${beachImage
+              ? `<img src="${beachImage}" alt="${booking.beach_name}" style="width: 100%; height: 100%; object-fit: cover;" />`
+              : `<div style="width: 100%; height: 100%; background: linear-gradient(135deg, #0f766e 0%, #14b8a6 100%);"></div>`
+            }
+            <div style="position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: linear-gradient(180deg, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.6) 100%);"></div>
+            <div style="position: absolute; bottom: 15px; left: 20px; right: 20px; display: flex; align-items: center; gap: 12px;">
+              ${logo ? `<img src="${logo}" alt="AllenShores PH" width="40" height="40" style="border-radius: 10px; background: white; padding: 2px;" />` : ''}
+              <div>
+                <h1 style="color: #ffffff; margin: 0; font-size: 22px; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">${booking.beach_name}</h1>
+                <p style="color: #e5e7eb; margin: 2px 0 0; font-size: 13px;">${booking.beach_location || ''}</p>
+              </div>
+            </div>
           </div>
-          <h2 style="color: #0f766e;">${subject}</h2>
-          <p>Hi <strong>${booking.full_name}</strong>,</p>
-          <div style="white-space: pre-line; background: #f9fafb; padding: 15px; border-radius: 8px; border-left: 4px solid #0f766e;">
-            ${message.replace(/\n/g, '<br/>')}
+
+          <!-- Email Body -->
+          <div style="padding: 25px 30px;">
+            <h2 style="color: #0f766e; margin: 0 0 15px; font-size: 20px;">${subject}</h2>
+            <p style="color: #374151; margin: 0 0 15px;">Hi <strong>${booking.full_name}</strong>,</p>
+            <div style="white-space: pre-line; background: #f0fdfa; padding: 18px; border-radius: 10px; border-left: 4px solid #0f766e; color: #1f2937; line-height: 1.6; font-size: 15px;">
+              ${message.replace(/\n/g, '<br/>')}
+            </div>
+
+            <!-- Booking Info Card -->
+            <div style="background: #f9fafb; border: 1px solid #e5e7eb; border-radius: 10px; padding: 15px; margin: 20px 0;">
+              <p style="margin: 0 0 8px; font-size: 14px; color: #6b7280;">
+                <strong style="color: #374151;">Booking Reference:</strong> ${booking.booking_ref}
+              </p>
+              <p style="margin: 0 0 8px; font-size: 14px; color: #6b7280;">
+                <strong style="color: #374151;">Beach:</strong> ${booking.beach_name}
+              </p>
+              <p style="margin: 0; font-size: 14px; color: #6b7280;">
+                <strong style="color: #374151;">Visit Date:</strong> ${visitDateFormatted}
+              </p>
+            </div>
+
+            <!-- Action Buttons -->
+            <div style="text-align: center; margin: 25px 0;">
+              <a href="${bookMoreLink}" style="display: inline-block; background: #0f766e; color: #ffffff; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; margin: 0 5px; font-size: 14px;">
+                📅 Book More
+              </a>
+              <a href="${editBookingLink}" style="display: inline-block; background: #ffffff; color: #0f766e; text-decoration: none; padding: 12px 28px; border-radius: 8px; font-weight: 600; margin: 0 5px; border: 2px solid #0f766e; font-size: 14px;">
+                ✏️ Edit Booking
+              </a>
+            </div>
+
+            <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
+
+            <!-- Signature -->
+            <div style="text-align: center;">
+              <p style="margin: 0; color: #6b7280; font-size: 14px;">Best regards,</p>
+              <p style="margin: 5px 0 0; color: #1f2937; font-weight: 600; font-size: 15px;">${owner.username}</p>
+              <p style="margin: 2px 0 0; color: #0f766e; font-size: 14px;">${booking.beach_name}</p>
+              <p style="margin: 5px 0 0; color: #9ca3af; font-size: 12px;">AllenShores PH</p>
+            </div>
           </div>
-          <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 20px 0;" />
-          <p style="font-size: 0.9rem; color: #6b7280;">
-            <strong>Booking Reference:</strong> ${booking.booking_ref}<br/>
-            <strong>Beach:</strong> ${booking.beach_name}<br/>
-            <strong>Visit Date:</strong> ${booking.visit_date}
-          </p>
-          <p>Best regards,<br/><strong>${owner.username}</strong><br/>${booking.beach_name}<br/>AllenShores PH</p>
+
+          <!-- Footer -->
+          <div style="background: #f3f4f6; padding: 15px 30px; text-align: center;">
+            <p style="margin: 0; color: #9ca3af; font-size: 12px;">
+              This email was sent from ${booking.beach_name} via AllenShores PH.<br/>
+              © ${new Date().getFullYear()} AllenShores PH. All rights reserved.
+            </p>
+          </div>
         </div>
       `
     });

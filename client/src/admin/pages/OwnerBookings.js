@@ -1,11 +1,41 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Badge, Form, Button, InputGroup, Dropdown, Modal, Row, Col } from 'react-bootstrap';
-import { FaSearch, FaFilter, FaTrash, FaEye, FaEnvelope } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaTrash, FaEye, FaEnvelope, FaHeart, FaCalendarAlt, FaBell, FaEdit, FaPlus } from 'react-icons/fa';
 import { ownerAPI } from '../../services/api';
+import { useAuth } from '../../context/AuthContext';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
 
+// Email templates
+const EMAIL_TEMPLATES = {
+  thankyou: {
+    label: 'Thank You',
+    icon: <FaHeart />,
+    color: '#ec4899',
+    getSubject: (beachName) => `Thank You for Visiting ${beachName}!`,
+    getMessage: (guestName, beachName, bookingRef, visitDate) =>
+      `Dear ${guestName},\n\nThank you for choosing ${beachName} for your recent visit on ${visitDate}. We hope you had a wonderful experience with us!\n\nYour booking reference: ${bookingRef}\n\nWe would love to see you again soon. If you have any feedback or photos to share, please don't hesitate to reach out.\n\nWarm regards,\nThe ${beachName} Team`
+  },
+  reschedule: {
+    label: 'Re-Schedule',
+    icon: <FaCalendarAlt />,
+    color: '#f59e0b',
+    getSubject: (beachName) => `Re-Schedule Your Booking at ${beachName}`,
+    getMessage: (guestName, beachName, bookingRef, visitDate) =>
+      `Dear ${guestName},\n\nWe're writing regarding your booking (Ref: ${bookingRef}) scheduled for ${visitDate} at ${beachName}.\n\nDue to unforeseen circumstances, we kindly request you to consider rescheduling your visit. We apologize for any inconvenience this may cause.\n\nPlease reply to this email or contact us to arrange a new date that works for you. We'll do our best to accommodate your preferred schedule.\n\nThank you for your understanding.\n\nBest regards,\nThe ${beachName} Team`
+  },
+  reminder: {
+    label: 'Reminder',
+    icon: <FaBell />,
+    color: '#3b82f6',
+    getSubject: (beachName) => `Reminder: Your Upcoming Visit to ${beachName}`,
+    getMessage: (guestName, beachName, bookingRef, visitDate) =>
+      `Dear ${guestName},\n\nThis is a friendly reminder about your upcoming visit to ${beachName} on ${visitDate}.\n\nBooking Reference: ${bookingRef}\n\nWhat to bring:\n- Sunscreen and hat\n- Swimwear and towel\n- Valid ID\n- Camera for memories\n\nWe look forward to welcoming you! If you need to make any changes, please contact us as soon as possible.\n\nSee you soon!\n\nThe ${beachName} Team`
+  }
+};
+
 const OwnerBookings = () => {
+  const { owner } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
@@ -18,6 +48,7 @@ const OwnerBookings = () => {
   const [showEmailModal, setShowEmailModal] = useState(false);
   const [emailBooking, setEmailBooking] = useState(null);
   const [emailData, setEmailData] = useState({ subject: '', message: '' });
+  const [selectedTemplate, setSelectedTemplate] = useState('custom');
   const [sendingEmail, setSendingEmail] = useState(false);
 
   useEffect(() => {
@@ -65,7 +96,27 @@ const OwnerBookings = () => {
   const handleOpenEmail = (booking) => {
     setEmailBooking(booking);
     setEmailData({ subject: '', message: '' });
+    setSelectedTemplate('custom');
     setShowEmailModal(true);
+  };
+
+  const handleSelectTemplate = (templateKey) => {
+    setSelectedTemplate(templateKey);
+    if (templateKey === 'custom') {
+      setEmailData({ subject: '', message: '' });
+      return;
+    }
+    const template = EMAIL_TEMPLATES[templateKey];
+    if (template && emailBooking) {
+      const beachName = emailBooking.beach_name || owner?.beach_name || 'Our Beach';
+      const visitDate = new Date(emailBooking.visit_date).toLocaleDateString('en-US', {
+        year: 'numeric', month: 'long', day: 'numeric'
+      });
+      setEmailData({
+        subject: template.getSubject(beachName),
+        message: template.getMessage(emailBooking.full_name, beachName, emailBooking.booking_ref, visitDate)
+      });
+    }
   };
 
   const handleSendEmail = async () => {
@@ -281,7 +332,7 @@ const OwnerBookings = () => {
       </Modal>
 
       {/* Email Modal */}
-      <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)}>
+      <Modal show={showEmailModal} onHide={() => setShowEmailModal(false)} size="lg">
         <Modal.Header closeButton>
           <Modal.Title>
             <FaEnvelope className="me-2" />
@@ -294,8 +345,38 @@ const OwnerBookings = () => {
               <div className="mb-3 p-3 bg-light rounded">
                 <strong>To:</strong> {emailBooking.full_name}<br/>
                 <strong>Email:</strong> {emailBooking.email}<br/>
-                <strong>Booking Ref:</strong> {emailBooking.booking_ref}
+                <strong>Booking Ref:</strong> {emailBooking.booking_ref}<br/>
+                <strong>Visit Date:</strong> {new Date(emailBooking.visit_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}
               </div>
+
+              {/* Email Template Selection */}
+              <div className="mb-3">
+                <Form.Label className="fw-bold mb-2">Email Template</Form.Label>
+                <div className="d-flex gap-2 flex-wrap">
+                  <Button
+                    variant={selectedTemplate === 'custom' ? 'primary' : 'outline-secondary'}
+                    size="sm"
+                    onClick={() => handleSelectTemplate('custom')}
+                  >
+                    <FaEdit className="me-1" /> Custom
+                  </Button>
+                  {Object.entries(EMAIL_TEMPLATES).map(([key, template]) => (
+                    <Button
+                      key={key}
+                      variant={selectedTemplate === key ? 'primary' : 'outline-secondary'}
+                      size="sm"
+                      onClick={() => handleSelectTemplate(key)}
+                      style={selectedTemplate === key ? { background: template.color, borderColor: template.color } : {}}
+                    >
+                      {template.icon} {template.label}
+                    </Button>
+                  ))}
+                </div>
+                <Form.Text className="text-muted d-block mt-1">
+                  Select a template to auto-fill the subject and message.
+                </Form.Text>
+              </div>
+
               <Form.Group className="mb-3">
                 <Form.Label>Subject *</Form.Label>
                 <Form.Control
@@ -309,13 +390,13 @@ const OwnerBookings = () => {
                 <Form.Label>Message *</Form.Label>
                 <Form.Control
                   as="textarea"
-                  rows={6}
+                  rows={8}
                   placeholder="Type your message to the guest..."
                   value={emailData.message}
                   onChange={(e) => setEmailData({ ...emailData, message: e.target.value })}
                 />
                 <Form.Text className="text-muted">
-                  Your beach name will be automatically included in the email subject.
+                  Your beach logo and booking links (Book More / Edit Booking) will be automatically included in the email.
                 </Form.Text>
               </Form.Group>
             </div>
