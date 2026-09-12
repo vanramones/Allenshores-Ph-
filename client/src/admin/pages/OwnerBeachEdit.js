@@ -180,14 +180,15 @@ const OwnerBeachEdit = () => {
             <Row className="g-3">
               <Col md={6}>
                 <Form.Group>
-                  <Form.Label>Beach Name *</Form.Label>
+                  <Form.Label>Beach Name</Form.Label>
                   <Form.Control
                     type="text"
-                    name="name"
                     value={formData.name}
-                    onChange={handleChange}
-                    required
+                    disabled
+                    readOnly
+                    style={{ background: '#f8fafc', fontWeight: 600 }}
                   />
+                  <Form.Text className="text-muted">Beach name is set automatically.</Form.Text>
                 </Form.Group>
               </Col>
               <Col md={6}>
