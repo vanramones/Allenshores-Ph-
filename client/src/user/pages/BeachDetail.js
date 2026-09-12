@@ -20,6 +20,7 @@ const BeachDetail = () => {
   const [submitting, setSubmitting] = useState(false);
   const [selectedImage, setSelectedImage] = useState(0);
   const [lightboxOpen, setLightboxOpen] = useState(false);
+  const [propertyLightbox, setPropertyLightbox] = useState({ open: false, images: [], index: 0, title: '' });
 
   const { isBookmarked, toggleBookmark } = useBookmarks();
   const { addToCompare, isInCompare } = useCompare();
@@ -267,6 +268,52 @@ const BeachDetail = () => {
               </div>
             )}
 
+            {/* Property (Cottage/Room) Lightbox */}
+            {propertyLightbox.open && propertyLightbox.images.length > 0 && (
+              <div className="beach-lightbox" onClick={() => setPropertyLightbox(prev => ({ ...prev, open: false }))}>
+                <button className="beach-lightbox-close" onClick={() => setPropertyLightbox(prev => ({ ...prev, open: false }))}>
+                  <FaTimesCircle size={32} />
+                </button>
+                <div style={{ textAlign: 'center', color: '#fff', marginBottom: '12px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+                  <h4 style={{ margin: 0 }}>{propertyLightbox.title}</h4>
+                  <small>{propertyLightbox.index + 1} / {propertyLightbox.images.length}</small>
+                </div>
+                <img
+                  src={propertyLightbox.images[propertyLightbox.index]?.image_path || defaultImage}
+                  alt={propertyLightbox.title}
+                  onClick={(e) => e.stopPropagation()}
+                />
+                {propertyLightbox.images.length > 1 && (
+                  <>
+                    <button
+                      className="beach-lightbox-nav beach-lightbox-prev"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPropertyLightbox(prev => ({
+                          ...prev,
+                          index: prev.index === 0 ? prev.images.length - 1 : prev.index - 1
+                        }));
+                      }}
+                    >
+                      <FaChevronLeft size={24} />
+                    </button>
+                    <button
+                      className="beach-lightbox-nav beach-lightbox-next"
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setPropertyLightbox(prev => ({
+                          ...prev,
+                          index: prev.index === prev.images.length - 1 ? 0 : prev.index + 1
+                        }));
+                      }}
+                    >
+                      <FaChevronRight size={24} />
+                    </button>
+                  </>
+                )}
+              </div>
+            )}
+
             {/* Beach Info */}
             <Card className="mb-4" style={{ borderRadius: '20px', border: 'none', boxShadow: 'var(--shadow-md)' }}>
               <Card.Body style={{ padding: '2rem' }}>
@@ -415,18 +462,40 @@ const BeachDetail = () => {
                   </h5>
                   <Row className="g-3">
                     {cottages.map(cottage => {
-                      const primaryImg = cottage.images?.find(i => i.is_primary) || cottage.images?.[0];
+                      const imgs = cottage.images || [];
+                      const primaryImg = imgs.find(i => i.is_primary) || imgs[0];
                       return (
                         <Col xs={12} md={6} key={cottage.id}>
                           <div className="beach-avail-card available h-100" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                             {primaryImg && (
-                              <img
-                                src={primaryImg.image_path}
-                                alt={cottage.name}
-                                className="w-100 rounded mb-3"
-                                style={{ height: '160px', objectFit: 'cover' }}
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
+                              <>
+                                <img
+                                  src={primaryImg.image_path}
+                                  alt={cottage.name}
+                                  className="w-100 rounded mb-2"
+                                  style={{ height: '180px', objectFit: 'cover', cursor: 'pointer' }}
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                  onClick={() => setPropertyLightbox({ open: true, images: imgs, index: imgs.findIndex(i => i.id === primaryImg.id), title: cottage.name })}
+                                />
+                                {imgs.length > 1 && (
+                                  <div className="d-flex gap-1 mb-2 flex-wrap">
+                                    {imgs.map((img, idx) => (
+                                      <img
+                                        key={img.id}
+                                        src={img.image_path}
+                                        alt={`${cottage.name} ${idx + 1}`}
+                                        style={{
+                                          width: '48px', height: '48px', objectFit: 'cover',
+                                          borderRadius: '6px', cursor: 'pointer',
+                                          border: idx === imgs.findIndex(i => i.id === primaryImg.id) ? '2px solid var(--primary)' : '2px solid transparent'
+                                        }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                        onClick={() => setPropertyLightbox({ open: true, images: imgs, index: idx, title: cottage.name })}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </>
                             )}
                             <div className="beach-avail-info" style={{ width: '100%' }}>
                               <div className="beach-avail-title">{cottage.name}</div>
@@ -457,18 +526,40 @@ const BeachDetail = () => {
                   </h5>
                   <Row className="g-3">
                     {rooms.map(room => {
-                      const primaryImg = room.images?.find(i => i.is_primary) || room.images?.[0];
+                      const imgs = room.images || [];
+                      const primaryImg = imgs.find(i => i.is_primary) || imgs[0];
                       return (
                         <Col xs={12} md={6} key={room.id}>
                           <div className="beach-avail-card available h-100" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
                             {primaryImg && (
-                              <img
-                                src={primaryImg.image_path}
-                                alt={room.name}
-                                className="w-100 rounded mb-3"
-                                style={{ height: '160px', objectFit: 'cover' }}
-                                onError={(e) => { e.target.style.display = 'none'; }}
-                              />
+                              <>
+                                <img
+                                  src={primaryImg.image_path}
+                                  alt={room.name}
+                                  className="w-100 rounded mb-2"
+                                  style={{ height: '180px', objectFit: 'cover', cursor: 'pointer' }}
+                                  onError={(e) => { e.target.style.display = 'none'; }}
+                                  onClick={() => setPropertyLightbox({ open: true, images: imgs, index: imgs.findIndex(i => i.id === primaryImg.id), title: room.name })}
+                                />
+                                {imgs.length > 1 && (
+                                  <div className="d-flex gap-1 mb-2 flex-wrap">
+                                    {imgs.map((img, idx) => (
+                                      <img
+                                        key={img.id}
+                                        src={img.image_path}
+                                        alt={`${room.name} ${idx + 1}`}
+                                        style={{
+                                          width: '48px', height: '48px', objectFit: 'cover',
+                                          borderRadius: '6px', cursor: 'pointer',
+                                          border: idx === imgs.findIndex(i => i.id === primaryImg.id) ? '2px solid var(--primary)' : '2px solid transparent'
+                                        }}
+                                        onError={(e) => { e.target.style.display = 'none'; }}
+                                        onClick={() => setPropertyLightbox({ open: true, images: imgs, index: idx, title: room.name })}
+                                      />
+                                    ))}
+                                  </div>
+                                )}
+                              </>
                             )}
                             <div className="beach-avail-info" style={{ width: '100%' }}>
                               <div className="beach-avail-title">{room.name}</div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
-import { FaCalendarCheck, FaUser, FaEnvelope, FaPhone, FaGlobe, FaUsers, FaCheck, FaHome, FaBed } from 'react-icons/fa';
+import { FaCalendarCheck, FaUser, FaEnvelope, FaPhone, FaGlobe, FaUsers, FaCheck, FaHome, FaBed, FaTimesCircle, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
 import { beachesAPI, bookingsAPI, propertiesAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 
@@ -15,6 +15,7 @@ const Booking = () => {
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
+  const [propertyLightbox, setPropertyLightbox] = useState({ open: false, images: [], index: 0, title: '' });
   
   const [formData, setFormData] = useState({
     beach_id: preselectedBeachId || '',
@@ -360,8 +361,22 @@ const Booking = () => {
                           src={selectedCottage.images.find(i => i.is_primary)?.image_path || selectedCottage.images[0].image_path}
                           alt={selectedCottage.name}
                           className="rounded"
-                          style={{ width: '100%', maxHeight: '160px', objectFit: 'cover' }}
+                          style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => setPropertyLightbox({ open: true, images: selectedCottage.images, index: 0, title: selectedCottage.name })}
                         />
+                        {selectedCottage.images.length > 1 && (
+                          <div className="d-flex gap-1 mt-1 flex-wrap">
+                            {selectedCottage.images.map((img, idx) => (
+                              <img
+                                key={img.id}
+                                src={img.image_path}
+                                alt={`${selectedCottage.name} ${idx + 1}`}
+                                style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                                onClick={() => setPropertyLightbox({ open: true, images: selectedCottage.images, index: idx, title: selectedCottage.name })}
+                              />
+                            ))}
+                          </div>
+                        )}
                         {selectedCottage.description && (
                           <p className="text-muted small mt-2 mb-0">{selectedCottage.description}</p>
                         )}
@@ -417,8 +432,22 @@ const Booking = () => {
                           src={selectedRoom.images.find(i => i.is_primary)?.image_path || selectedRoom.images[0].image_path}
                           alt={selectedRoom.name}
                           className="rounded"
-                          style={{ width: '100%', maxHeight: '160px', objectFit: 'cover' }}
+                          style={{ width: '100%', maxHeight: '160px', objectFit: 'cover', cursor: 'pointer' }}
+                          onClick={() => setPropertyLightbox({ open: true, images: selectedRoom.images, index: 0, title: selectedRoom.name })}
                         />
+                        {selectedRoom.images.length > 1 && (
+                          <div className="d-flex gap-1 mt-1 flex-wrap">
+                            {selectedRoom.images.map((img, idx) => (
+                              <img
+                                key={img.id}
+                                src={img.image_path}
+                                alt={`${selectedRoom.name} ${idx + 1}`}
+                                style={{ width: '40px', height: '40px', objectFit: 'cover', borderRadius: '4px', cursor: 'pointer' }}
+                                onClick={() => setPropertyLightbox({ open: true, images: selectedRoom.images, index: idx, title: selectedRoom.name })}
+                              />
+                            ))}
+                          </div>
+                        )}
                         {selectedRoom.description && (
                           <p className="text-muted small mt-2 mb-0">{selectedRoom.description}</p>
                         )}
@@ -544,6 +573,52 @@ const Booking = () => {
           </Col>
         </Row>
       </Container>
+
+      {/* Property (Cottage/Room) Lightbox */}
+      {propertyLightbox.open && propertyLightbox.images.length > 0 && (
+        <div className="beach-lightbox" onClick={() => setPropertyLightbox(prev => ({ ...prev, open: false }))}>
+          <button className="beach-lightbox-close" onClick={() => setPropertyLightbox(prev => ({ ...prev, open: false }))}>
+            <FaTimesCircle size={32} />
+          </button>
+          <div style={{ textAlign: 'center', color: '#fff', marginBottom: '12px', textShadow: '0 2px 4px rgba(0,0,0,0.5)' }}>
+            <h4 style={{ margin: 0 }}>{propertyLightbox.title}</h4>
+            <small>{propertyLightbox.index + 1} / {propertyLightbox.images.length}</small>
+          </div>
+          <img
+            src={propertyLightbox.images[propertyLightbox.index]?.image_path}
+            alt={propertyLightbox.title}
+            onClick={(e) => e.stopPropagation()}
+          />
+          {propertyLightbox.images.length > 1 && (
+            <>
+              <button
+                className="beach-lightbox-nav beach-lightbox-prev"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPropertyLightbox(prev => ({
+                    ...prev,
+                    index: prev.index === 0 ? prev.images.length - 1 : prev.index - 1
+                  }));
+                }}
+              >
+                <FaChevronLeft size={24} />
+              </button>
+              <button
+                className="beach-lightbox-nav beach-lightbox-next"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setPropertyLightbox(prev => ({
+                    ...prev,
+                    index: prev.index === prev.images.length - 1 ? 0 : prev.index + 1
+                  }));
+                }}
+              >
+                <FaChevronRight size={24} />
+              </button>
+            </>
+          )}
+        </div>
+      )}
     </div>
   );
 };
