@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Container, Row, Col, Card, Form, Button, Alert } from 'react-bootstrap';
-import { FaCalendarCheck, FaUser, FaEnvelope, FaPhone, FaGlobe, FaUsers, FaCheck } from 'react-icons/fa';
-import { beachesAPI, bookingsAPI } from '../../services/api';
+import { FaCalendarCheck, FaUser, FaEnvelope, FaPhone, FaGlobe, FaUsers, FaCheck, FaHome, FaBed } from 'react-icons/fa';
+import { beachesAPI, bookingsAPI, propertiesAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 
 const Booking = () => {
@@ -10,6 +10,8 @@ const Booking = () => {
   const preselectedBeachId = searchParams.get('beach');
   
   const [beaches, setBeaches] = useState([]);
+  const [cottages, setCottages] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [success, setSuccess] = useState(null);
@@ -23,7 +25,10 @@ const Booking = () => {
     visit_date: '',
     people: 1,
     visit_type: 'day_trip',
-    activity_pref: '',
+    cottage_id: '',
+    cottage_qty: 0,
+    room_id: '',
+    room_qty: 0,
     notes: '',
     terms: false
   });
@@ -31,6 +36,15 @@ const Booking = () => {
   useEffect(() => {
     fetchBeaches();
   }, []);
+
+  useEffect(() => {
+    if (formData.beach_id) {
+      fetchProperties(formData.beach_id);
+    } else {
+      setCottages([]);
+      setRooms([]);
+    }
+  }, [formData.beach_id]);
 
   const fetchBeaches = async () => {
     try {
@@ -43,14 +57,37 @@ const Booking = () => {
     }
   };
 
+  const fetchProperties = async (beachId) => {
+    try {
+      const [cottageRes, roomRes] = await Promise.all([
+        propertiesAPI.getByBeach('cottage', beachId),
+        propertiesAPI.getByBeach('room', beachId)
+      ]);
+      setCottages(cottageRes.data);
+      setRooms(roomRes.data);
+    } catch (error) {
+      console.error('Error fetching properties:', error);
+      setCottages([]);
+      setRooms([]);
+    }
+  };
+
   const selectedBeach = beaches.find(b => b.id === parseInt(formData.beach_id));
+  const selectedCottage = cottages.find(c => c.id === parseInt(formData.cottage_id));
+  const selectedRoom = rooms.find(r => r.id === parseInt(formData.room_id));
 
   const handleChange = (e) => {
     const { name, value, type, checked } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: type === 'checkbox' ? checked : value
-    }));
+    setFormData(prev => {
+      const next = { ...prev, [name]: type === 'checkbox' ? checked : value };
+      // Reset quantity when selection is cleared
+      if (name === 'cottage_id' && !value) next.cottage_qty = 0;
+      if (name === 'room_id' && !value) next.room_qty = 0;
+      // Default qty to 1 when a selection is made
+      if (name === 'cottage_id' && value && prev.cottage_qty === 0) next.cottage_qty = 1;
+      if (name === 'room_id' && value && prev.room_qty === 0) next.room_qty = 1;
+      return next;
+    });
   };
 
   const handleSubmit = async (e) => {
@@ -63,7 +100,14 @@ const Booking = () => {
 
     setSubmitting(true);
     try {
-      const response = await bookingsAPI.create(formData);
+      const payload = {
+        ...formData,
+        cottage_id: formData.cottage_id || null,
+        room_id: formData.room_id || null,
+        cottage_qty: formData.cottage_id ? parseInt(formData.cottage_qty) || 0 : 0,
+        room_qty: formData.room_id ? parseInt(formData.room_qty) || 0 : 0
+      };
+      const response = await bookingsAPI.create(payload);
       setSuccess(response.data);
       toast.success('Booking submitted successfully!');
       // Reset form
@@ -76,7 +120,10 @@ const Booking = () => {
         visit_date: '',
         people: 1,
         visit_type: 'day_trip',
-        activity_pref: '',
+        cottage_id: '',
+        cottage_qty: 0,
+        room_id: '',
+        room_qty: 0,
         notes: '',
         terms: false
       });
@@ -88,8 +135,11 @@ const Booking = () => {
   };
 
   const calculateTotal = () => {
-    if (!selectedBeach) return 0;
-    return (parseFloat(selectedBeach.price) || 0) * formData.people;
+    let total = 0;
+    if (selectedBeach) total += (parseFloat(selectedBeach.price) || 0) * formData.people;
+    if (selectedCottage) total += (parseFloat(selectedCottage.price) || 0) * (parseInt(formData.cottage_qty) || 0);
+    if (selectedRoom) total += (parseFloat(selectedRoom.price) || 0) * (parseInt(formData.room_qty) || 0);
+    return total;
   };
 
   // Get minimum date (today)
@@ -232,7 +282,7 @@ const Booking = () => {
                         />
                       </Form.Group>
                     </Col>
-                    <Col md={4}>
+                    <Col md={6}>
                       <Form.Group>
                         <Form.Label><FaUsers className="me-1" /> Number of People</Form.Label>
                         <Form.Control
@@ -246,7 +296,7 @@ const Booking = () => {
                         />
                       </Form.Group>
                     </Col>
-                    <Col md={4}>
+                    <Col md={6}>
                       <Form.Group>
                         <Form.Label>Visit Type</Form.Label>
                         <Form.Select
@@ -260,23 +310,123 @@ const Booking = () => {
                         </Form.Select>
                       </Form.Group>
                     </Col>
-                    <Col md={4}>
+                  </Row>
+
+                  {/* Cottage Selection */}
+                  <h5 className="fw-bold mb-3">
+                    <FaHome className="me-2 text-success" />
+                    Cottage (Optional)
+                  </h5>
+                  <Row className="g-3 mb-4">
+                    <Col md={6}>
                       <Form.Group>
-                        <Form.Label>Activity Preference</Form.Label>
+                        <Form.Label>Select Cottage</Form.Label>
                         <Form.Select
-                          name="activity_pref"
-                          value={formData.activity_pref}
+                          name="cottage_id"
+                          value={formData.cottage_id}
                           onChange={handleChange}
+                          disabled={!formData.beach_id || cottages.length === 0}
                         >
-                          <option value="">Select...</option>
-                          <option value="swimming">Swimming</option>
-                          <option value="snorkeling">Snorkeling</option>
-                          <option value="relaxation">Relaxation</option>
-                          <option value="photography">Photography</option>
-                          <option value="mixed">Mixed Activities</option>
+                          <option value="">
+                            {formData.beach_id
+                              ? (cottages.length === 0 ? 'No cottages available' : 'No cottage (day trip only)')
+                              : 'Select a beach first'}
+                          </option>
+                          {cottages.map(cottage => (
+                            <option key={cottage.id} value={cottage.id}>
+                              {cottage.name} - ₱{cottage.price} (cap: {cottage.capacity})
+                            </option>
+                          ))}
                         </Form.Select>
                       </Form.Group>
                     </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Cottage Quantity</Form.Label>
+                        <Form.Control
+                          type="number"
+                          name="cottage_qty"
+                          value={formData.cottage_qty}
+                          onChange={handleChange}
+                          min={0}
+                          max={selectedCottage ? selectedCottage.quantity : 1}
+                          disabled={!formData.cottage_id}
+                        />
+                      </Form.Group>
+                    </Col>
+                    {selectedCottage && selectedCottage.images && selectedCottage.images.length > 0 && (
+                      <Col xs={12}>
+                        <img
+                          src={selectedCottage.images.find(i => i.is_primary)?.image_path || selectedCottage.images[0].image_path}
+                          alt={selectedCottage.name}
+                          className="rounded"
+                          style={{ width: '100%', maxHeight: '160px', objectFit: 'cover' }}
+                        />
+                        {selectedCottage.description && (
+                          <p className="text-muted small mt-2 mb-0">{selectedCottage.description}</p>
+                        )}
+                      </Col>
+                    )}
+                  </Row>
+
+                  {/* Room Selection */}
+                  <h5 className="fw-bold mb-3">
+                    <FaBed className="me-2 text-info" />
+                    Room (Optional)
+                  </h5>
+                  <Row className="g-3 mb-4">
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Select Room</Form.Label>
+                        <Form.Select
+                          name="room_id"
+                          value={formData.room_id}
+                          onChange={handleChange}
+                          disabled={!formData.beach_id || rooms.length === 0}
+                        >
+                          <option value="">
+                            {formData.beach_id
+                              ? (rooms.length === 0 ? 'No rooms available' : 'No room (day trip only)')
+                              : 'Select a beach first'}
+                          </option>
+                          {rooms.map(room => (
+                            <option key={room.id} value={room.id}>
+                              {room.name} - ₱{room.price} (cap: {room.capacity})
+                            </option>
+                          ))}
+                        </Form.Select>
+                      </Form.Group>
+                    </Col>
+                    <Col md={6}>
+                      <Form.Group>
+                        <Form.Label>Room Quantity</Form.Label>
+                        <Form.Control
+                          type="number"
+                          name="room_qty"
+                          value={formData.room_qty}
+                          onChange={handleChange}
+                          min={0}
+                          max={selectedRoom ? selectedRoom.quantity : 1}
+                          disabled={!formData.room_id}
+                        />
+                      </Form.Group>
+                    </Col>
+                    {selectedRoom && selectedRoom.images && selectedRoom.images.length > 0 && (
+                      <Col xs={12}>
+                        <img
+                          src={selectedRoom.images.find(i => i.is_primary)?.image_path || selectedRoom.images[0].image_path}
+                          alt={selectedRoom.name}
+                          className="rounded"
+                          style={{ width: '100%', maxHeight: '160px', objectFit: 'cover' }}
+                        />
+                        {selectedRoom.description && (
+                          <p className="text-muted small mt-2 mb-0">{selectedRoom.description}</p>
+                        )}
+                      </Col>
+                    )}
+                  </Row>
+
+                  <Row className="g-3 mb-4">
                     <Col xs={12}>
                       <Form.Group>
                         <Form.Label>Special Requests</Form.Label>
@@ -351,6 +501,26 @@ const Booking = () => {
                       <span className="text-muted">Price per person</span>
                       <span>₱{selectedBeach.price || 0}</span>
                     </div>
+
+                    {selectedCottage && (
+                      <>
+                        <hr />
+                        <div className="d-flex justify-content-between mb-2">
+                          <span className="text-muted"><FaHome className="me-1" /> {selectedCottage.name}</span>
+                          <span>₱{selectedCottage.price} × {formData.cottage_qty}</span>
+                        </div>
+                      </>
+                    )}
+
+                    {selectedRoom && (
+                      <>
+                        <hr />
+                        <div className="d-flex justify-content-between mb-2">
+                          <span className="text-muted"><FaBed className="me-1" /> {selectedRoom.name}</span>
+                          <span>₱{selectedRoom.price} × {formData.room_qty}</span>
+                        </div>
+                      </>
+                    )}
                     
                     <hr />
                     

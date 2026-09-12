@@ -188,7 +188,7 @@ const Dashboard = () => {
       <div className="admin-welcome-banner mb-4">
         <div className="admin-welcome-content">
           <div>
-            <h2 className="admin-welcome-title">Welcome back, Admin! 👋</h2>
+            <h2 className="admin-welcome-title">Welcome back, Admin</h2>
             <p className="admin-welcome-subtitle">Here's what's happening with AllenShores today.</p>
           </div>
           <div className="admin-welcome-date">
@@ -280,7 +280,7 @@ const Dashboard = () => {
             <Card.Body className="p-0">
               {recentBookings.length === 0 ? (
                 <div className="admin-empty-state">
-                  <div className="admin-empty-icon">📅</div>
+                  <div className="admin-empty-icon"><FaCalendarCheck /></div>
                   <p className="admin-empty-text">No bookings yet</p>
                 </div>
               ) : (

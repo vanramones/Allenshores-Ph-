@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Badge, Button, Form, Alert } from 'react-bootstrap';
 import { FaStar, FaMapMarkerAlt, FaBookmark, FaRegBookmark, FaBalanceScale, FaCalendarCheck, FaHome, FaBed, FaSun, FaCheckCircle, FaTimesCircle, FaImages, FaChevronLeft, FaChevronRight } from 'react-icons/fa';
-import { beachesAPI, reviewsAPI } from '../../services/api';
+import { beachesAPI, reviewsAPI, propertiesAPI } from '../../services/api';
 import { useBookmarks } from '../../context/BookmarkContext';
 import { useCompare } from '../../context/CompareContext';
 import StarRating from '../../components/common/StarRating';
@@ -13,6 +13,8 @@ const BeachDetail = () => {
   const { id } = useParams();
   const [beach, setBeach] = useState(null);
   const [reviews, setReviews] = useState([]);
+  const [cottages, setCottages] = useState([]);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [reviewForm, setReviewForm] = useState({ author: '', rating: 5, comment: '' });
   const [submitting, setSubmitting] = useState(false);
@@ -28,12 +30,16 @@ const BeachDetail = () => {
 
   const fetchData = async () => {
     try {
-      const [beachRes, reviewsRes] = await Promise.all([
+      const [beachRes, reviewsRes, cottageRes, roomRes] = await Promise.all([
         beachesAPI.getById(id),
-        reviewsAPI.getByBeach(id)
+        reviewsAPI.getByBeach(id),
+        propertiesAPI.getByBeach('cottage', id).catch(() => ({ data: [] })),
+        propertiesAPI.getByBeach('room', id).catch(() => ({ data: [] }))
       ]);
       setBeach(beachRes.data);
       setReviews(reviewsRes.data);
+      setCottages(cottageRes.data);
+      setRooms(roomRes.data);
     } catch (error) {
       console.error('Error fetching beach:', error);
       toast.error('Beach not found');
@@ -398,6 +404,90 @@ const BeachDetail = () => {
                 </Row>
               </Card.Body>
             </Card>
+
+            {/* Cottages Section */}
+            {cottages.length > 0 && (
+              <Card className="mb-4" style={{ borderRadius: '20px', border: 'none', boxShadow: 'var(--shadow-md)' }}>
+                <Card.Body style={{ padding: '2rem' }}>
+                  <h5 className="fw-bold mb-4" style={{ color: 'var(--dark)' }}>
+                    <FaHome className="me-2" style={{ color: 'var(--primary)' }} />
+                    Available Cottages ({cottages.length})
+                  </h5>
+                  <Row className="g-3">
+                    {cottages.map(cottage => {
+                      const primaryImg = cottage.images?.find(i => i.is_primary) || cottage.images?.[0];
+                      return (
+                        <Col xs={12} md={6} key={cottage.id}>
+                          <div className="beach-avail-card available h-100" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                            {primaryImg && (
+                              <img
+                                src={primaryImg.image_path}
+                                alt={cottage.name}
+                                className="w-100 rounded mb-3"
+                                style={{ height: '160px', objectFit: 'cover' }}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            )}
+                            <div className="beach-avail-info" style={{ width: '100%' }}>
+                              <div className="beach-avail-title">{cottage.name}</div>
+                              <div className="beach-avail-details">
+                                <span>Cap: {cottage.capacity} pax</span>
+                                <span className="beach-avail-price">₱{cottage.price}</span>
+                              </div>
+                              {cottage.description && (
+                                <p className="text-muted small mt-2 mb-0">{cottage.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </Card.Body>
+              </Card>
+            )}
+
+            {/* Rooms Section */}
+            {rooms.length > 0 && (
+              <Card className="mb-4" style={{ borderRadius: '20px', border: 'none', boxShadow: 'var(--shadow-md)' }}>
+                <Card.Body style={{ padding: '2rem' }}>
+                  <h5 className="fw-bold mb-4" style={{ color: 'var(--dark)' }}>
+                    <FaBed className="me-2" style={{ color: 'var(--primary)' }} />
+                    Available Rooms ({rooms.length})
+                  </h5>
+                  <Row className="g-3">
+                    {rooms.map(room => {
+                      const primaryImg = room.images?.find(i => i.is_primary) || room.images?.[0];
+                      return (
+                        <Col xs={12} md={6} key={room.id}>
+                          <div className="beach-avail-card available h-100" style={{ flexDirection: 'column', alignItems: 'stretch' }}>
+                            {primaryImg && (
+                              <img
+                                src={primaryImg.image_path}
+                                alt={room.name}
+                                className="w-100 rounded mb-3"
+                                style={{ height: '160px', objectFit: 'cover' }}
+                                onError={(e) => { e.target.style.display = 'none'; }}
+                              />
+                            )}
+                            <div className="beach-avail-info" style={{ width: '100%' }}>
+                              <div className="beach-avail-title">{room.name}</div>
+                              <div className="beach-avail-details">
+                                <span>Cap: {room.capacity} pax</span>
+                                <span className="beach-avail-price">₱{room.price}</span>
+                              </div>
+                              {room.description && (
+                                <p className="text-muted small mt-2 mb-0">{room.description}</p>
+                              )}
+                            </div>
+                          </div>
+                        </Col>
+                      );
+                    })}
+                  </Row>
+                </Card.Body>
+              </Card>
+            )}
 
             {/* Reviews Section */}
             <Card style={{ borderRadius: '20px', border: 'none', boxShadow: 'var(--shadow-md)' }}>

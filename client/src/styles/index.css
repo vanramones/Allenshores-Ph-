@@ -717,7 +717,8 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 2.5rem;
+  font-size: 2rem;
+  color: #ffffff;
   margin-bottom: 1.5rem;
   border: 1px solid rgba(255, 255, 255, 0.2);
 }
@@ -1433,6 +1434,124 @@ body {
    User Pages Responsive (Home, Beaches, Compare)
    ═══════════════════════════════════════════════════════════ */
 
+/* Compare Table - Section Headers */
+.compare-table .compare-section-header td {
+  background: #f1f5f9;
+  color: #334155;
+  padding: 0.6rem 1rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  border-bottom: 2px solid #e2e8f0;
+}
+
+.compare-table .compare-section-header td span {
+  font-weight: 700;
+}
+
+/* Compare Table - Row Styling */
+.compare-table tbody tr:hover {
+  background: #f8fafc;
+}
+
+.compare-table td.fw-semibold {
+  width: 200px;
+  min-width: 200px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+.compare-table td.text-center {
+  font-size: 0.875rem;
+  vertical-align: middle;
+}
+
+/* Compare Table - Header Row */
+.compare-table thead th {
+  background: #ffffff;
+  border-bottom: 2px solid #e2e8f0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #1e293b;
+  padding: 1rem;
+}
+
+/* Compare Page - Header Responsive */
+.user-compare .d-flex.justify-content-between {
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+
+.user-compare h1 {
+  font-size: 1.75rem;
+}
+
+/* Compare Table - Mobile Card Layout */
+@media (max-width: 767px) {
+  /* Hide the traditional table on mobile */
+  .compare-table thead {
+    display: none;
+  }
+
+  /* Transform table rows into stacked cards */
+  .compare-table,
+  .compare-table tbody,
+  .compare-table tr,
+  .compare-table td {
+    display: block;
+    width: 100%;
+  }
+
+  .compare-table tr {
+    margin-bottom: 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 12px;
+    overflow: hidden;
+    background: #ffffff;
+  }
+
+  /* Section header rows */
+  .compare-table .compare-section-header td {
+    background: #f1f5f9;
+    color: #334155;
+    padding: 0.75rem 1rem;
+    font-size: 0.75rem;
+    letter-spacing: 0.08em;
+    border-bottom: 2px solid #e2e8f0;
+    text-align: center;
+  }
+
+  /* Feature label rows */
+  .compare-table td.fw-semibold {
+    width: 100%;
+    min-width: unset;
+    background: #f8fafc;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+  }
+
+  /* Value cells */
+  .compare-table td.text-center {
+    text-align: left !important;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 0.85rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Add label before value on mobile */
+  .compare-table td.text-center::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: #64748b;
+    font-size: 0.8rem;
+  }
+}
+
 @media (max-width: 576px) {
   /* Home Page */
   .hero-section-new {
@@ -1561,6 +1680,10 @@ body {
     height: 120px;
   }
 
+  .user-compare h1 {
+    font-size: 1.35rem;
+  }
+
   .table-responsive {
     font-size: 0.8rem;
   }
@@ -1568,7 +1691,6 @@ body {
   .table th,
   .table td {
     padding: 0.5rem;
-    white-space: nowrap;
   }
 
   /* Bookmarks Page */
@@ -4201,8 +4323,9 @@ body {
 }
 
 .owner-beach-option-icon {
-  font-size: 2rem;
+  font-size: 1.75rem;
   line-height: 1;
+  color: #0f766e;
 }
 
 .owner-beach-option-label {
@@ -4812,6 +4935,143 @@ body {
   
   .owner-chart-container {
     height: 160px;
+  }
+
+  /* Owner Dashboard - Welcome card layout */
+  .owner-welcome-card .row .text-md-end {
+    text-align: left !important;
+    margin-top: 1rem;
+  }
+
+  .owner-welcome-card .owner-action-btn {
+    width: 100%;
+    margin-bottom: 0.5rem;
+  }
+
+  /* Owner Dashboard - Stat cards */
+  .owner-stat-card .card-body {
+    padding: 1rem;
+  }
+
+  .owner-stat-icon-wrap {
+    width: 36px;
+    height: 36px;
+    font-size: 0.85rem;
+  }
+
+  /* Owner Dashboard - Chart cards */
+  .owner-chart-card .card-header,
+  .owner-performance-card .card-header {
+    padding: 0.75rem 1rem;
+  }
+
+  .owner-chart-card .card-header h5 {
+    font-size: 0.95rem;
+  }
+
+  .owner-chart-card .card-header small {
+    display: none;
+  }
+
+  /* Owner Dashboard - Performance items */
+  .owner-performance-item {
+    padding: 0 0.25rem;
+  }
+
+  .owner-quick-actions {
+    flex-direction: column;
+  }
+
+  .owner-quick-action-btn {
+    width: 100%;
+    justify-content: center;
+  }
+
+  /* Owner Bookings - Filters */
+  .admin-filters-bar {
+    flex-direction: column;
+    gap: 0.5rem;
+  }
+
+  .admin-filters-bar .admin-search-input,
+  .admin-filters-bar .admin-filter-select {
+    width: 100%;
+  }
+
+  /* Owner Bookings - Table actions */
+  .admin-table tbody td[data-label="Actions"] .d-flex {
+    flex-wrap: wrap;
+    gap: 0.25rem;
+  }
+
+  /* Owner Reports */
+  .admin-reports .d-flex.justify-content-between {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+
+  .admin-reports .d-flex.gap-2.flex-wrap {
+    width: 100%;
+  }
+
+  .admin-reports .d-flex.gap-2.flex-wrap .btn {
+    flex: 1 1 auto;
+  }
+
+  /* Owner Reports - Filter card */
+  .admin-reports .card .row.g-3 {
+    gap: 0.75rem 0;
+  }
+
+  /* Owner Reports - Summary cards */
+  .admin-reports .text-center.h-100 .card-body {
+    padding: 0.75rem;
+  }
+
+  .admin-reports .text-center.h-100 h3 {
+    font-size: 1.25rem;
+  }
+
+  /* Owner Reports - Status breakdown */
+  .admin-reports .d-flex.align-items-center.gap-3 {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.5rem;
+    text-align: left;
+  }
+
+  /* Owner Beach Edit */
+  .owner-beach-edit .row.g-3 {
+    gap: 0.75rem 0;
+  }
+
+  /* Owner Tables - Mobile card layout */
+  .owner-table thead {
+    display: none;
+  }
+
+  .owner-table tbody tr {
+    display: block;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    padding: 1rem;
+  }
+
+  .owner-table tbody td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+    border: none;
+  }
+
+  .owner-table tbody td::before {
+    content: attr(data-label);
+    font-weight: 600;
+    color: var(--dark);
+    margin-right: 1rem;
   }
 }
 

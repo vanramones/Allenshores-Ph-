@@ -90,7 +90,7 @@ router.post('/owner-login', async (req, res) => {
         id: owner.id,
         username: owner.username,
         beach_id: owner.beach_id,
-        beach_name: owner.beach_name,
+        beach_name: (owner.beach_name || '').replace(/\s*Updated\s*$/i, ''),
         beach_location: owner.beach_location,
         role: 'owner'
       }
@@ -160,7 +160,7 @@ router.post('/staff-login', async (req, res) => {
         id: staff.id,
         username: staff.username,
         beach_id: staff.beach_id,
-        beach_name: staff.beach_name,
+        beach_name: (staff.beach_name || '').replace(/\s*Updated\s*$/i, ''),
         beach_location: staff.beach_location,
         full_name: staff.full_name,
         role: 'owner',

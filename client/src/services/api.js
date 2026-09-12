@@ -106,6 +106,30 @@ export const bookingsAPI = {
 };
 
 // ═══════════════════════════════════════════════════════════
+// Properties API (Cottages & Rooms)
+// ═══════════════════════════════════════════════════════════
+export const propertiesAPI = {
+  // Public: get all available cottages/rooms for a beach
+  getByBeach: (type, beachId) => api.get(`/properties/${type}/beach/${beachId}`),
+  // Public: get single cottage/room
+  getById: (type, id) => api.get(`/properties/${type}/${id}`),
+  // Admin/Owner: get all cottages/rooms for management (includes unavailable)
+  getForManage: (type, beachId) => api.get(`/properties/${type}/manage/${beachId}`),
+  // Admin/Owner: create cottage/room with images
+  create: (type, data) => api.post(`/properties/${type}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  // Admin/Owner: update cottage/room
+  update: (type, id, data) => api.put(`/properties/${type}/${id}`, data, {
+    headers: { 'Content-Type': 'multipart/form-data' }
+  }),
+  // Admin/Owner: delete cottage/room
+  delete: (type, id) => api.delete(`/properties/${type}/${id}`),
+  // Admin/Owner: delete single image
+  deleteImage: (type, id, imageId) => api.delete(`/properties/${type}/${id}/images/${imageId}`)
+};
+
+// ═══════════════════════════════════════════════════════════
 // Bookmarks API
 // ═══════════════════════════════════════════════════════════
 export const bookmarksAPI = {

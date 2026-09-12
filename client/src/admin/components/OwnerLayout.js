@@ -285,7 +285,7 @@ const SidebarContent = ({ navItems, location, onLogout, owner, onClose, pendingC
     {/* Brand */}
     <div className="admin-sidebar-brand">
       <Link to="/owner/dashboard" className="admin-brand-link">
-        <span className="admin-brand-icon">🏖️</span>
+        <span className="admin-brand-icon"><FaUmbrellaBeach /></span>
         <div className="admin-brand-text">
           <span className="admin-brand-name">AllenShores</span>
           <span className="admin-brand-panel">OWNER PANEL</span>
@@ -301,7 +301,7 @@ const SidebarContent = ({ navItems, location, onLogout, owner, onClose, pendingC
     {/* Beach Info */}
     <div className="owner-sidebar-beach-info">
       <FaUmbrellaBeach className="me-2" />
-      <span>{owner?.beach_name || owner?.username || 'My Beach'}</span>
+      <span>{(owner?.beach_name || owner?.username || 'My Beach').replace(/\s*Updated\s*$/i, '')}</span>
     </div>
 
     {/* Navigation */}

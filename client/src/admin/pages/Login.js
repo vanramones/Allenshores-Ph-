@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Form, Button, Alert } from 'react-bootstrap';
-import { FaUser, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaShieldAlt, FaChartLine, FaCog, FaUmbrellaBeach, FaHome } from 'react-icons/fa';
+import { FaUser, FaLock, FaSignInAlt, FaEye, FaEyeSlash, FaShieldAlt, FaChartLine, FaCog, FaUmbrellaBeach, FaHome, FaSun, FaWater } from 'react-icons/fa';
 import { useAuth } from '../../context/AuthContext';
 
 const Login = () => {
@@ -23,9 +23,9 @@ const Login = () => {
   const [showOwnerPassword, setShowOwnerPassword] = useState(false);
 
   const beachOptions = [
-    { key: 'sunrise', label: 'Sunrise Beach Resort', username: 'sunrise', icon: '🌅' },
-    { key: 'cabavilla', label: 'Caba Villa Diaz Beach', username: 'cabavilla', icon: '🏖️' },
-    { key: 'tonying', label: 'Tonying Beach', username: 'tonying', icon: '🌴' }
+    { key: 'sunrise', label: 'Sunrise Beach Resort', username: 'sunrise', icon: <FaSun /> },
+    { key: 'cabavilla', label: 'Caba Villa Diaz Beach', username: 'cabavilla', icon: <FaUmbrellaBeach /> },
+    { key: 'tonying', label: 'Ba Tonying', username: 'tonying', icon: <FaWater /> }
   ];
 
   const handleChange = (e) => {
@@ -96,7 +96,9 @@ const Login = () => {
             <FaShieldAlt className="me-2" />
             {loginMode === 'admin' ? 'ADMIN PORTAL' : 'BEACH OWNER PORTAL'}
           </div>
-          <div className="admin-login-brand-icon">🌊</div>
+          <div className="admin-login-brand-icon">
+            <FaUmbrellaBeach />
+          </div>
           <h1 className="admin-login-brand-name">AllenShores PH <span>{loginMode === 'admin' ? 'ADMIN' : 'OWNER'}</span></h1>
           <p className="admin-login-brand-desc">
             {loginMode === 'admin'

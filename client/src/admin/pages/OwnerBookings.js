@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Table, Badge, Form, Button, InputGroup, Dropdown, Modal, Row, Col } from 'react-bootstrap';
-import { FaSearch, FaFilter, FaTrash, FaEye, FaEnvelope, FaHeart, FaCalendarAlt, FaBell, FaEdit, FaPlus } from 'react-icons/fa';
+import { FaSearch, FaFilter, FaTrash, FaEye, FaEnvelope, FaHeart, FaCalendarAlt, FaBell, FaEdit, FaPlus, FaEllipsisV, FaDownload, FaHome, FaBed } from 'react-icons/fa';
 import { ownerAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Loading from '../../components/common/Loading';
@@ -108,7 +108,7 @@ const OwnerBookings = () => {
     }
     const template = EMAIL_TEMPLATES[templateKey];
     if (template && emailBooking) {
-      const beachName = emailBooking.beach_name || owner?.beach_name || 'Our Beach';
+      const beachName = (emailBooking.beach_name || owner?.beach_name || 'Our Beach').replace(/\s*Updated\s*$/i, '');
       const visitDate = new Date(emailBooking.visit_date).toLocaleDateString('en-US', {
         year: 'numeric', month: 'long', day: 'numeric'
       });
@@ -138,7 +138,10 @@ const OwnerBookings = () => {
   };
 
   const getStatusBadge = (status) => {
-    const variant = status === 'confirmed' ? 'success' : status === 'cancelled' ? 'danger' : 'warning';
+    let variant = 'warning';
+    if (status === 'confirmed') variant = 'success';
+    else if (status === 'completed') variant = 'info';
+    else if (status === 'cancelled') variant = 'danger';
     return <Badge bg={variant}>{status}</Badge>;
   };
 
@@ -173,6 +176,7 @@ const OwnerBookings = () => {
           <option value="all">All Status</option>
           <option value="pending">Pending</option>
           <option value="confirmed">Confirmed</option>
+          <option value="completed">Completed</option>
           <option value="cancelled">Cancelled</option>
         </Form.Select>
 
@@ -198,6 +202,8 @@ const OwnerBookings = () => {
               <th>Contact</th>
               <th>Visit Date</th>
               <th>People</th>
+              <th>Cottage</th>
+              <th>Room</th>
               <th>Status</th>
               <th>Actions</th>
             </tr>
@@ -205,29 +211,39 @@ const OwnerBookings = () => {
           <tbody>
             {bookings.length === 0 ? (
               <tr>
-                <td colSpan={7} className="text-center text-muted py-4">
+                <td colSpan={9} className="text-center text-muted py-4">
                   No bookings found
                 </td>
               </tr>
             ) : (
               bookings.map(booking => (
                 <tr key={booking.id}>
-                  <td><code>{booking.booking_ref}</code></td>
-                  <td>
+                  <td data-label="Ref"><code>{booking.booking_ref}</code></td>
+                  <td data-label="Guest">
                     <div className="fw-semibold">{booking.full_name}</div>
                     <small className="text-muted">{booking.email}</small>
                   </td>
-                  <td>{booking.phone}</td>
-                  <td>{new Date(booking.visit_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                  <td>{booking.people}</td>
-                  <td>{getStatusBadge(booking.status)}</td>
-                  <td>
+                  <td data-label="Contact">{booking.phone}</td>
+                  <td data-label="Visit Date">{new Date(booking.visit_date).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                  <td data-label="People">{booking.people}</td>
+                  <td data-label="Cottage">
+                    {booking.cottage_name ? (
+                      <span><FaHome className="me-1 text-success" />{booking.cottage_name} ×{booking.cottage_qty || 1}</span>
+                    ) : <span className="text-muted">—</span>}
+                  </td>
+                  <td data-label="Room">
+                    {booking.room_name ? (
+                      <span><FaBed className="me-1 text-info" />{booking.room_name} ×{booking.room_qty || 1}</span>
+                    ) : <span className="text-muted">—</span>}
+                  </td>
+                  <td data-label="Status">{getStatusBadge(booking.status)}</td>
+                  <td data-label="Actions">
                     <div className="d-flex gap-1">
                       <Button
                         size="sm"
                         variant="outline-info"
                         onClick={() => { setViewBooking(booking); setShowViewModal(true); }}
-                        title="View"
+                        title="View Details"
                       >
                         <FaEye />
                       </Button>
@@ -239,24 +255,38 @@ const OwnerBookings = () => {
                       >
                         <FaEnvelope />
                       </Button>
-                      <Dropdown>
-                        <Dropdown.Toggle size="sm" variant="outline-secondary">
-                          <FaFilter />
+                      <Dropdown align="end" drop="down">
+                        <Dropdown.Toggle size="sm" variant="outline-secondary" title="More Actions">
+                          <FaEllipsisV />
                         </Dropdown.Toggle>
-                        <Dropdown.Menu>
-                          <Dropdown.Item onClick={() => handleStatusUpdate(booking.id, 'pending')}>Mark Pending</Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleStatusUpdate(booking.id, 'confirmed')}>Mark Confirmed</Dropdown.Item>
-                          <Dropdown.Item onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>Mark Cancelled</Dropdown.Item>
+                        <Dropdown.Menu 
+                          style={{ 
+                            minWidth: '180px',
+                            zIndex: 1050
+                          }}
+                          popperConfig={{
+                            strategy: 'fixed'
+                          }}
+                        >
+                          <Dropdown.Header>Update Status</Dropdown.Header>
+                          <Dropdown.Item onClick={() => handleStatusUpdate(booking.id, 'pending')}>
+                            Mark Pending
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleStatusUpdate(booking.id, 'confirmed')}>
+                            Accept Book
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleStatusUpdate(booking.id, 'completed')}>
+                            Complete
+                          </Dropdown.Item>
+                          <Dropdown.Item onClick={() => handleStatusUpdate(booking.id, 'cancelled')}>
+                            Mark Cancelled
+                          </Dropdown.Item>
+                          <Dropdown.Divider />
+                          <Dropdown.Item onClick={() => { setDeleteId(booking.id); setShowDeleteModal(true); }} className="text-danger">
+                            <FaTrash className="me-1" /> Delete Booking
+                          </Dropdown.Item>
                         </Dropdown.Menu>
                       </Dropdown>
-                      <Button
-                        size="sm"
-                        variant="outline-danger"
-                        onClick={() => { setDeleteId(booking.id); setShowDeleteModal(true); }}
-                        title="Delete"
-                      >
-                        <FaTrash />
-                      </Button>
                     </div>
                   </td>
                 </tr>
@@ -296,6 +326,20 @@ const OwnerBookings = () => {
                 </Col>
                 <Col md={6}>
                   <strong>Status:</strong> {getStatusBadge(viewBooking.status)}
+                </Col>
+              </Row>
+              <Row className="mb-3">
+                <Col md={6}>
+                  <strong>Cottage:</strong>{' '}
+                  {viewBooking.cottage_name
+                    ? `${viewBooking.cottage_name} ×${viewBooking.cottage_qty || 1} (₱${viewBooking.cottage_price || 0})`
+                    : 'None'}
+                </Col>
+                <Col md={6}>
+                  <strong>Room:</strong>{' '}
+                  {viewBooking.room_name
+                    ? `${viewBooking.room_name} ×${viewBooking.room_qty || 1} (₱${viewBooking.room_price || 0})`
+                    : 'None'}
                 </Col>
               </Row>
               {viewBooking.message && (

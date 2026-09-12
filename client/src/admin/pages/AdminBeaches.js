@@ -3,10 +3,11 @@ import { Row, Col, Card, Form, InputGroup, Button, Badge, Modal, Table } from 'r
 import {
   FaSearch, FaStar, FaMapMarkerAlt, FaEye, FaImage, FaCheckCircle,
   FaMoneyBillWave, FaTag, FaCalendarAlt, FaLock, FaPlus, FaEdit, FaTrash,
-  FaTimes, FaUpload, FaExclamationTriangle
+  FaTimes, FaUpload, FaExclamationTriangle, FaHome, FaBed
 } from 'react-icons/fa';
 import { beachesAPI } from '../../services/api';
 import Loading from '../../components/common/Loading';
+import PropertyManager from '../components/PropertyManager';
 import { toast } from 'react-toastify';
 
 // Owner-protected beach IDs - Super Admin cannot edit/delete these
@@ -31,6 +32,8 @@ const AdminBeaches = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteBeach, setDeleteBeach] = useState(null);
   const [showAddModal, setShowAddModal] = useState(false);
+  const [showPropertiesModal, setShowPropertiesModal] = useState(false);
+  const [propertiesBeach, setPropertiesBeach] = useState(null);
   const [saving, setSaving] = useState(false);
   const [editForm, setEditForm] = useState({ ...emptyForm });
   const [addForm, setAddForm] = useState({ ...emptyForm });
@@ -202,7 +205,7 @@ const AdminBeaches = () => {
           <FaExclamationTriangle className="me-3" style={{ color: '#ea580c', fontSize: '1.25rem' }} />
           <div>
             <strong>Protected Beaches:</strong> Sunrise Beach (ID: 2), Caba Villa Diaz (ID: 7),
-            and Tonying Beach (ID: 11) are managed by their respective beach owners.
+            and Ba Tonying (ID: 11) are managed by their respective beach owners.
             Super Admin can only view these beaches.
           </div>
         </div>
@@ -299,6 +302,14 @@ const AdminBeaches = () => {
                       </Button>
                       {!isOwnerBeach(beach.id) ? (
                         <>
+                          <Button
+                            variant="outline-info"
+                            size="sm"
+                            onClick={() => { setPropertiesBeach(beach); setShowPropertiesModal(true); }}
+                            title="Manage Cottages & Rooms"
+                          >
+                            <FaHome className="me-1" /><FaBed />
+                          </Button>
                           <Button
                             variant="outline-primary"
                             size="sm"
@@ -874,6 +885,27 @@ const AdminBeaches = () => {
               <><FaPlus className="me-2" />Add Beach</>
             )}
           </Button>
+        </Modal.Footer>
+      </Modal>
+
+      {/* Properties (Cottages & Rooms) Management Modal */}
+      <Modal show={showPropertiesModal} onHide={() => setShowPropertiesModal(false)} size="xl" scrollable>
+        <Modal.Header closeButton>
+          <Modal.Title>
+            <FaHome className="me-2 text-success" />
+            Manage Cottages & Rooms — {propertiesBeach?.name}
+          </Modal.Title>
+        </Modal.Header>
+        <Modal.Body>
+          {propertiesBeach && (
+            <>
+              <PropertyManager type="cottage" beachId={propertiesBeach.id} />
+              <PropertyManager type="room" beachId={propertiesBeach.id} />
+            </>
+          )}
+        </Modal.Body>
+        <Modal.Footer>
+          <Button variant="secondary" onClick={() => setShowPropertiesModal(false)}>Close</Button>
         </Modal.Footer>
       </Modal>
     </div>

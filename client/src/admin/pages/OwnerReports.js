@@ -224,7 +224,7 @@ const OwnerReports = () => {
             Reports
           </h2>
           <p className="text-muted mb-0">
-            {summary?.beach?.name ? `${summary.beach.name} - ` : ''}Generate and export reports
+            {summary?.beach?.name ? `${summary.beach.name.replace(/\s*Updated\s*$/i, '')} - ` : ''}Generate and export reports
           </p>
         </div>
         <div className="d-flex gap-2 flex-wrap">

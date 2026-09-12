@@ -116,7 +116,7 @@ const OwnerAdminAccounts = ({ theme }) => {
             Admin Accounts
           </h2>
           <p className="text-muted mb-0">
-            Manage staff accounts for {owner?.beach_name || 'your beach'}
+            Manage staff accounts for {(owner?.beach_name || 'your beach').replace(/\s*Updated\s*$/i, '')}
           </p>
         </div>
         <Button
@@ -201,7 +201,7 @@ const OwnerAdminAccounts = ({ theme }) => {
             ) : (
               admins.map(admin => (
                 <tr key={admin.id}>
-                  <td>
+                  <td data-label="Admin Name">
                     <div className="d-flex align-items-center gap-2">
                       <div
                         className="owner-guest-avatar"
@@ -212,9 +212,9 @@ const OwnerAdminAccounts = ({ theme }) => {
                       <div className="fw-semibold">{admin.full_name}</div>
                     </div>
                   </td>
-                  <td><code>{admin.username}</code></td>
-                  <td>{admin.email || 'N/A'}</td>
-                  <td>
+                  <td data-label="Username"><code>{admin.username}</code></td>
+                  <td data-label="Email">{admin.email || 'N/A'}</td>
+                  <td data-label="Role">
                     <Badge
                       bg={admin.role === 'admin' ? 'primary' : 'info'}
                       className="text-capitalize"
@@ -222,13 +222,13 @@ const OwnerAdminAccounts = ({ theme }) => {
                       {admin.role}
                     </Badge>
                   </td>
-                  <td>
+                  <td data-label="Status">
                     <Badge bg={admin.is_active ? 'success' : 'danger'}>
                       {admin.is_active ? 'Active' : 'Inactive'}
                     </Badge>
                   </td>
-                  <td>{new Date(admin.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
-                  <td>
+                  <td data-label="Created">{new Date(admin.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                  <td data-label="Actions">
                     <div className="d-flex gap-1">
                       <Button
                         size="sm"

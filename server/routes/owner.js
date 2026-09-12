@@ -101,9 +101,13 @@ router.get('/bookings', async (req, res) => {
     const { status, search, sort } = req.query;
 
     let sql = `
-      SELECT bk.*, b.name as beach_name, b.location as beach_location
+      SELECT bk.*, b.name as beach_name, b.location as beach_location,
+        c.name as cottage_name, c.price as cottage_price,
+        r.name as room_name, r.price as room_price
       FROM bookings bk
       LEFT JOIN beaches b ON bk.beach_id = b.id
+      LEFT JOIN cottages c ON bk.cottage_id = c.id
+      LEFT JOIN rooms r ON bk.room_id = r.id
       WHERE bk.beach_id = $1
     `;
     const params = [beachId];
@@ -155,7 +159,7 @@ router.put('/bookings/:id/status', async (req, res) => {
     }
 
     const { status } = req.body;
-    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+    if (!['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 

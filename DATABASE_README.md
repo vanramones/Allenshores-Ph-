@@ -353,81 +353,7 @@ Stores user-submitted reviews and ratings for beaches.
 -- AllenShores PH - PostgreSQL Schema
 -- =============================================
 
-CREATE TABLE IF NOT EXISTS admin_users (
-  id SERIAL PRIMARY KEY,
-  username VARCHAR(50) UNIQUE NOT NULL,
-  password VARCHAR(255) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS beaches (
-  id SERIAL PRIMARY KEY,
-  name VARCHAR(255) NOT NULL,
-  location VARCHAR(255),
-  region VARCHAR(100) DEFAULT 'Allen',
-  rating DECIMAL(3,2) DEFAULT 0.00,
-  reviews_count INTEGER DEFAULT 0,
-  price VARCHAR(50) DEFAULT '0',
-  price_level VARCHAR(20) DEFAULT 'Budget' CHECK (price_level IN ('Budget','Moderate','Premium')),
-  type VARCHAR(100) DEFAULT 'Beach',
-  image VARCHAR(500),
-  description TEXT,
-  cottage_available BOOLEAN DEFAULT FALSE,
-  cottage_count INTEGER DEFAULT 0,
-  cottage_price VARCHAR(50) DEFAULT '0',
-  room_available BOOLEAN DEFAULT FALSE,
-  room_count INTEGER DEFAULT 0,
-  room_price VARCHAR(50) DEFAULT '0',
-  water_temp VARCHAR(20),
-  weather_info VARCHAR(100),
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-
-CREATE TABLE IF NOT EXISTS beach_images (
-  id SERIAL PRIMARY KEY,
-  beach_id INTEGER NOT NULL REFERENCES beaches(id) ON DELETE CASCADE,
-  image_path VARCHAR(500) NOT NULL,
-  is_primary BOOLEAN DEFAULT FALSE,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_beach_images_beach_id ON beach_images(beach_id);
-
-CREATE TABLE IF NOT EXISTS bookings (
-  id SERIAL PRIMARY KEY,
-  booking_ref VARCHAR(20) UNIQUE NOT NULL,
-  beach_id INTEGER REFERENCES beaches(id) ON DELETE SET NULL,
-  full_name VARCHAR(255) NOT NULL,
-  email VARCHAR(255) NOT NULL,
-  phone VARCHAR(50),
-  nationality VARCHAR(100),
-  visit_date DATE NOT NULL,
-  people INTEGER DEFAULT 1,
-  visit_type VARCHAR(50) DEFAULT 'day_trip',
-  activity_pref VARCHAR(100),
-  notes TEXT,
-  status VARCHAR(20) DEFAULT 'pending' CHECK (status IN ('pending','confirmed','cancelled')),
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_bookings_beach_id ON bookings(beach_id);
-
-CREATE TABLE IF NOT EXISTS bookmarks (
-  id SERIAL PRIMARY KEY,
-  beach_id INTEGER REFERENCES beaches(id) ON DELETE CASCADE,
-  session_id VARCHAR(100) NOT NULL,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  UNIQUE(beach_id, session_id)
-);
-
-CREATE TABLE IF NOT EXISTS reviews (
-  id SERIAL PRIMARY KEY,
-  beach_id INTEGER REFERENCES beaches(id) ON DELETE CASCADE,
-  author VARCHAR(100) NOT NULL,
-  rating INTEGER NOT NULL,
-  comment TEXT,
-  created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
-);
-CREATE INDEX IF NOT EXISTS idx_reviews_beach_id ON reviews(beach_id);
-```
+W
 
 ---
 
@@ -607,10 +533,74 @@ erDiagram
     beaches ||--o{ bookings : "has"
     beaches ||--o{ bookmarks : "has"
     beaches ||--o{ reviews : "has"
+    beaches ||--o{ cottages : "has"
+    beaches ||--o{ rooms : "has"
+    cottages ||--o{ cottage_images : "has"
+    rooms ||--o{ room_images : "has"
+    cottages ||--o{ bookings : "may be booked in"
+    rooms ||--o{ bookings : "may be booked in"
 ```
 
 ---
 
+## Cottages & Rooms (Added 2026-09-12)
+
+Run `server/schema-properties.sql` in the Supabase SQL Editor to add these tables.
+
+### Table: `cottages`
+Individual cottage listings per beach (managed by Super Admin & Owners).
+
+| Column | Type | Constraints | Default | Description |
+|--------|------|-------------|---------|-------------|
+| `id` | SERIAL | PRIMARY KEY | auto | Unique cottage ID |
+| `beach_id` | INTEGER | FK → beaches(id) CASCADE | — | Owning beach |
+| `name` | VARCHAR(255) | NOT NULL | — | Cottage name |
+| `description` | TEXT | — | — | Description |
+| `price` | VARCHAR(50) | — | '0' | Price per unit |
+| `capacity` | INTEGER | — | 2 | Pax capacity |
+| `quantity` | INTEGER | — | 1 | Units available |
+| `is_available` | BOOLEAN | — | TRUE | Visible to users |
+| `created_at` | TIMESTAMP | — | now() | Creation time |
+
+### Table: `cottage_images`
+| Column | Type | Constraints | Default |
+|--------|------|-------------|---------|
+| `id` | SERIAL | PRIMARY KEY | auto |
+| `cottage_id` | INTEGER | FK → cottages(id) CASCADE | — |
+| `image_path` | VARCHAR(500) | NOT NULL | — |
+| `is_primary` | BOOLEAN | — | FALSE |
+| `created_at` | TIMESTAMP | — | now() |
+
+### Table: `rooms`
+Same structure as `cottages` but for room listings (`beach_id` FK → beaches).
+
+### Table: `room_images`
+Same structure as `cottage_images` but with `room_id` FK → rooms(id).
+
+### `bookings` (new columns)
+| Column | Type | Description |
+|--------|------|-------------|
+| `cottage_id` | INTEGER | FK → cottages(id), nullable |
+| `room_id` | INTEGER | FK → rooms(id), nullable |
+| `cottage_qty` | INTEGER | Number of cottages booked (default 0) |
+| `room_qty` | INTEGER | Number of rooms booked (default 0) |
+
+### API Endpoints (`/api/properties`)
+| Method | Route | Access | Description |
+|--------|-------|--------|-------------|
+| GET | `/properties/:type/beach/:beachId` | Public | List available cottages/rooms |
+| GET | `/properties/:type/:id` | Public | Single cottage/room with images |
+| GET | `/properties/:type/manage/:beachId` | Admin/Owner | All (incl. hidden) for management |
+| POST | `/properties/:type` | Admin/Owner | Create with images |
+| PUT | `/properties/:type/:id` | Admin/Owner | Update details + images |
+| DELETE | `/properties/:type/:id` | Admin/Owner | Delete + images |
+| DELETE | `/properties/:type/:id/images/:imageId` | Admin/Owner | Delete single image |
+
+`type` is `cottage` or `room`.
+
+---
+
 *Generated: 2026-09-04*
+*Updated: 2026-09-12 (cottages & rooms)*
 *Database: PostgreSQL (Supabase)*
 *Project: AllenShores PH Beach Comparison System*

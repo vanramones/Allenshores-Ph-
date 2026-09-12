@@ -1,7 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Container, Row, Col, Card, Table, Button, Badge } from 'react-bootstrap';
-import { FaTrash, FaPlus, FaStar, FaMapMarkerAlt, FaHome, FaBed, FaCheckCircle, FaTimesCircle } from 'react-icons/fa';
+import { FaTrash, FaPlus, FaStar, FaMapMarkerAlt, FaHome, FaBed, FaCheckCircle, FaTimesCircle, FaTag, FaMoneyBillWave, FaUtensils, FaBuilding } from 'react-icons/fa';
 import { useCompare } from '../../context/CompareContext';
 import StarRating from '../../components/common/StarRating';
 
@@ -10,39 +10,83 @@ const Compare = () => {
 
   const defaultImage = 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=400&q=80';
 
-  const comparisonFields = [
-    { key: 'location', label: 'Location' },
-    { key: 'region', label: 'Region', default: 'Allen' },
-    { key: 'rating', label: 'Rating', render: (val) => <StarRating rating={parseFloat(val) || 0} size="sm" showValue /> },
-    { key: 'reviews_count', label: 'Reviews', default: 0 },
-    { key: 'price', label: 'Price', render: (val) => `₱${val || 0}` },
-    { key: 'price_level', label: 'Price Level', default: 'Budget' },
-    { key: 'type', label: 'Type', default: 'Beach' },
+  // Professional comparison sections - no emojis, clean labels
+  const comparisonSections = [
     {
-      key: 'cottage_available',
-      label: 'Cottages',
-      render: (val, beach) => val ? (
-        <span className="text-success d-inline-flex align-items-center gap-1">
-          <FaCheckCircle /> Yes ({beach.cottage_count || 0} · ₱{beach.cottage_price || '0'})
-        </span>
-      ) : (
-        <span className="text-muted d-inline-flex align-items-center gap-1">
-          <FaTimesCircle /> N/A
-        </span>
-      )
+      title: 'Location & Type',
+      fields: [
+        { key: 'location', label: 'Location', icon: <FaMapMarkerAlt /> },
+        { key: 'type', label: 'Beach Type', default: 'Beach', icon: <FaHome /> },
+      ]
     },
     {
-      key: 'room_available',
-      label: 'Rooms',
-      render: (val, beach) => val ? (
-        <span className="text-success d-inline-flex align-items-center gap-1">
-          <FaCheckCircle /> Yes ({beach.room_count || 0} · ₱{beach.room_price || '0'})
-        </span>
-      ) : (
-        <span className="text-muted d-inline-flex align-items-center gap-1">
-          <FaTimesCircle /> N/A
-        </span>
-      )
+      title: 'Pricing',
+      fields: [
+        {
+          key: 'price',
+          label: 'Entrance Fee',
+          icon: <FaTag />,
+          render: (val) => `₱${val || 0} / person`
+        },
+        { key: 'price_level', label: 'Price Level', default: 'Budget', icon: <FaMoneyBillWave /> },
+      ]
+    },
+    {
+      title: 'Cottages & Rooms',
+      fields: [
+        {
+          key: 'cottage_available',
+          label: 'Cottage Options',
+          icon: <FaHome />,
+          render: (val, beach) => val ? (
+            <span className="text-success">
+              <FaCheckCircle className="me-1" />
+              {beach.cottage_count || 0} available · ₱{beach.cottage_price || '0'}
+            </span>
+          ) : (
+            <span className="text-muted">
+              <FaTimesCircle className="me-1" /> Not available
+            </span>
+          )
+        },
+        {
+          key: 'room_available',
+          label: 'Room Options',
+          icon: <FaBed />,
+          render: (val, beach) => val ? (
+            <span className="text-success">
+              <FaCheckCircle className="me-1" />
+              {beach.room_count || 0} available · ₱{beach.room_price || '0'} / night
+            </span>
+          ) : (
+            <span className="text-muted">
+              <FaTimesCircle className="me-1" /> Not available
+            </span>
+          )
+        },
+      ]
+    },
+    {
+      title: 'Ratings & Reviews',
+      fields: [
+        {
+          key: 'rating',
+          label: 'User Rating',
+          icon: <FaStar />,
+          render: (val) => (
+            <span className="d-inline-flex align-items-center gap-2">
+              <StarRating rating={parseFloat(val) || 0} size="sm" />
+              <span className="fw-bold">{parseFloat(val || 0).toFixed(1)} / 5</span>
+            </span>
+          )
+        },
+        {
+          key: 'reviews_count',
+          label: 'Total Reviews',
+          icon: <FaStar />,
+          render: (val) => `${val || 0} reviews`
+        },
+      ]
     }
   ];
 
@@ -50,7 +94,9 @@ const Compare = () => {
     return (
       <div className="fade-in py-5">
         <Container className="text-center">
-          <div style={{ fontSize: '4rem', marginBottom: '1rem' }}>⚖️</div>
+          <div className="mb-3" style={{ fontSize: '3rem', color: '#cbd5e1' }}>
+            <FaPlus size={48} />
+          </div>
           <h2 className="fw-bold mb-3">No Beaches to Compare</h2>
           <p className="text-muted mb-4">
             Add beaches to your compare list to see them side by side
@@ -145,28 +191,42 @@ const Compare = () => {
             <h5 className="mb-0 fw-bold">Detailed Comparison</h5>
           </Card.Header>
           <Card.Body className="p-0">
-            <Table responsive className="mb-0">
+            <Table responsive className="mb-0 compare-table">
               <thead>
                 <tr>
-                  <th style={{ width: '150px' }}>Feature</th>
+                  <th style={{ width: '200px' }}>Feature</th>
                   {compareList.map(beach => (
                     <th key={beach.id} className="text-center">{beach.name}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {comparisonFields.map(field => (
-                  <tr key={field.key}>
-                    <td className="fw-semibold text-muted">{field.label}</td>
-                    {compareList.map(beach => (
-                      <td key={beach.id} className="text-center">
-                        {field.render
-                          ? field.render(beach[field.key], beach)
-                          : beach[field.key] || field.default || '-'
-                        }
+                {comparisonSections.map((section, sIdx) => (
+                  <React.Fragment key={section.title}>
+                    {/* Section Header Row */}
+                    <tr className="compare-section-header">
+                      <td colSpan={compareList.length + 1}>
+                        <span className="text-uppercase">{section.title}</span>
                       </td>
+                    </tr>
+                    {/* Section Fields */}
+                    {section.fields.map(field => (
+                      <tr key={field.key}>
+                        <td className="fw-semibold text-muted">
+                          {field.icon && <span className="me-2 text-secondary" style={{ fontSize: '0.85em' }}>{field.icon}</span>}
+                          {field.label}
+                        </td>
+                        {compareList.map(beach => (
+                          <td key={beach.id} className="text-center" data-label={beach.name}>
+                            {field.render
+                              ? field.render(beach[field.key], beach)
+                              : beach[field.key] || field.default || '-'
+                            }
+                          </td>
+                        ))}
+                      </tr>
                     ))}
-                  </tr>
+                  </React.Fragment>
                 ))}
               </tbody>
             </Table>

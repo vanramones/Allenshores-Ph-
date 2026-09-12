@@ -102,22 +102,22 @@ const OwnerReviews = () => {
             ) : (
               currentReviews.map(review => (
                 <tr key={review.id}>
-                  <td>
+                  <td data-label="Reviewer">
                     <div className="fw-semibold">{review.author || 'Anonymous'}</div>
                   </td>
-                  <td>
+                  <td data-label="Rating">
                     <div className="d-flex align-items-center gap-1">
                       {renderStars(parseInt(review.rating))}
                       <span className="ms-1 text-muted">({review.rating})</span>
                     </div>
                   </td>
-                  <td style={{ maxWidth: '300px' }}>
+                  <td data-label="Comment" style={{ maxWidth: '300px' }}>
                     <div className="text-truncate" style={{ maxWidth: '280px' }}>
                       {review.comment || 'No comment'}
                     </div>
                   </td>
-                  <td>{new Date(review.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
-                  <td>
+                  <td data-label="Date">{new Date(review.created_at).toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' })}</td>
+                  <td data-label="Actions">
                     <div className="d-flex gap-1">
                       <Button
                         size="sm"

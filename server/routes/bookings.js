@@ -25,9 +25,13 @@ router.get('/', authMiddleware, async (req, res) => {
     const { status, search, from_date, to_date, sort } = req.query;
 
     let sql = `
-      SELECT bk.*, b.name as beach_name, b.location as beach_location
+      SELECT bk.*, b.name as beach_name, b.location as beach_location,
+        c.name as cottage_name, c.price as cottage_price,
+        r.name as room_name, r.price as room_price
       FROM bookings bk
       LEFT JOIN beaches b ON bk.beach_id = b.id
+      LEFT JOIN cottages c ON bk.cottage_id = c.id
+      LEFT JOIN rooms r ON bk.room_id = r.id
       WHERE 1=1
     `;
     const params = [];
@@ -171,7 +175,8 @@ router.post('/', async (req, res) => {
   try {
     const {
       beach_id, full_name, email, phone, nationality,
-      visit_date, people, visit_type, activity_pref, notes
+      visit_date, people, visit_type, activity_pref, notes,
+      cottage_id, room_id, cottage_qty, room_qty
     } = req.body;
 
     if (!beach_id || !full_name || !email || !visit_date || !people) {
@@ -182,10 +187,14 @@ router.post('/', async (req, res) => {
 
     const { rows } = await db.query(
       `INSERT INTO bookings
-       (booking_ref, beach_id, full_name, email, phone, nationality, visit_date, people, visit_type, activity_pref, notes, status)
-       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending')
+       (booking_ref, beach_id, full_name, email, phone, nationality, visit_date, people, visit_type, activity_pref, notes, status, cottage_id, room_id, cottage_qty, room_qty)
+       VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, 'pending', $12, $13, $14, $15)
        RETURNING id`,
-      [booking_ref, beach_id, full_name, email, phone || '', nationality || '', visit_date, people, visit_type || 'day_trip', activity_pref || '', notes || '']
+      [
+        booking_ref, beach_id, full_name, email, phone || '', nationality || '',
+        visit_date, people, visit_type || 'day_trip', activity_pref || '', notes || '',
+        cottage_id || null, room_id || null, cottage_qty || 0, room_qty || 0
+      ]
     );
 
     const { rows: newBookingRows } = await db.query(
@@ -256,7 +265,7 @@ router.put('/:id/status', authMiddleware, async (req, res) => {
   try {
     const { status } = req.body;
 
-    if (!['pending', 'confirmed', 'cancelled'].includes(status)) {
+    if (!['pending', 'confirmed', 'completed', 'cancelled'].includes(status)) {
       return res.status(400).json({ message: 'Invalid status' });
     }
 

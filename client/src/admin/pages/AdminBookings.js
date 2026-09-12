@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Card, Table, Form, Row, Col, Button, Badge, Modal, InputGroup } from 'react-bootstrap';
-import { FaSearch, FaCheck, FaTimes, FaEye, FaTrash, FaEnvelope, FaCalendarCheck } from 'react-icons/fa';
+import { FaSearch, FaCheck, FaTimes, FaEye, FaTrash, FaEnvelope, FaCalendarCheck, FaHome, FaBed } from 'react-icons/fa';
 import { bookingsAPI } from '../../services/api';
 import Loading from '../../components/common/Loading';
 import { toast } from 'react-toastify';
@@ -257,6 +257,8 @@ const AdminBookings = () => {
                   <th>Beach</th>
                   <th>Visit Date</th>
                   <th>People</th>
+                  <th>Cottage</th>
+                  <th>Room</th>
                   <th>Status</th>
                   <th>Actions</th>
                 </tr>
@@ -275,6 +277,16 @@ const AdminBookings = () => {
                     <td>{booking.beach_name || 'N/A'}</td>
                     <td>{formatDate(booking.visit_date)}</td>
                     <td>{booking.people}</td>
+                    <td>
+                      {booking.cottage_name ? (
+                        <span><FaHome className="me-1 text-success" />{booking.cottage_name} ×{booking.cottage_qty || 1}</span>
+                      ) : <span className="text-muted">—</span>}
+                    </td>
+                    <td>
+                      {booking.room_name ? (
+                        <span><FaBed className="me-1 text-info" />{booking.room_name} ×{booking.room_qty || 1}</span>
+                      ) : <span className="text-muted">—</span>}
+                    </td>
                     <td>{getStatusBadge(booking.status)}</td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="d-flex gap-1">
@@ -379,6 +391,22 @@ const AdminBookings = () => {
               <Col md={6}>
                 <strong>Visit Type:</strong>
                 <p>{selectedBooking.visit_type || 'Day Trip'}</p>
+              </Col>
+              <Col md={6}>
+                <strong>Cottage:</strong>
+                <p>
+                  {selectedBooking.cottage_name
+                    ? `${selectedBooking.cottage_name} ×${selectedBooking.cottage_qty || 1} (₱${selectedBooking.cottage_price || 0})`
+                    : 'None'}
+                </p>
+              </Col>
+              <Col md={6}>
+                <strong>Room:</strong>
+                <p>
+                  {selectedBooking.room_name
+                    ? `${selectedBooking.room_name} ×${selectedBooking.room_qty || 1} (₱${selectedBooking.room_price || 0})`
+                    : 'None'}
+                </p>
               </Col>
               <Col xs={12}>
                 <strong>Special Requests:</strong>

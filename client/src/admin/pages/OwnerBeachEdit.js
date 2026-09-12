@@ -8,6 +8,7 @@ import {
 import { ownerAPI } from '../../services/api';
 import { useAuth } from '../../context/AuthContext';
 import Loading from '../../components/common/Loading';
+import PropertyManager from '../components/PropertyManager';
 import { toast } from 'react-toastify';
 
 const OwnerBeachEdit = () => {
@@ -534,6 +535,14 @@ const OwnerBeachEdit = () => {
           </Button>
         </div>
       </Form>
+
+      {/* Cottage & Room Management */}
+      {beach && (
+        <>
+          <PropertyManager type="cottage" beachId={beach.id} />
+          <PropertyManager type="room" beachId={beach.id} />
+        </>
+      )}
     </div>
   );
 };

@@ -228,7 +228,7 @@ const SidebarContent = ({ navItems, location, onLogout, admin, onClose }) => (
     {/* Brand */}
     <div className="admin-sidebar-brand">
       <Link to="/admin/dashboard" className="admin-brand-link">
-        <span className="admin-brand-icon">🌊</span>
+        <span className="admin-brand-icon"><FaUmbrellaBeach /></span>
         <div className="admin-brand-text">
           <span className="admin-brand-name">AllenShores</span>
           <span className="admin-brand-panel">ADMIN PANEL</span>
