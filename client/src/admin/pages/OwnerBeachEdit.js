@@ -540,8 +540,8 @@ const OwnerBeachEdit = () => {
       {/* Cottage & Room Management */}
       {beach && (
         <>
-          <PropertyManager type="cottage" beachId={beach.id} />
-          <PropertyManager type="room" beachId={beach.id} />
+          <PropertyManager type="cottage" beachId={beach.id} beachName={beach.name} />
+          <PropertyManager type="room" beachId={beach.id} beachName={beach.name} />
         </>
       )}
     </div>

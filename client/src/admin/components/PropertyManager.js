@@ -6,7 +6,7 @@ import {
 import { propertiesAPI } from '../../services/api';
 import { toast } from 'react-toastify';
 
-const PropertyManager = ({ type, beachId, icon, color }) => {
+const PropertyManager = ({ type, beachId, beachName, icon, color }) => {
   const typeName = type.charAt(0).toUpperCase() + type.slice(1) + 's';
   const Icon = icon || (type === 'cottage' ? FaHome : FaBed);
   const accent = color || (type === 'cottage' ? '#16a34a' : '#0ea5e9');
@@ -97,14 +97,15 @@ const PropertyManager = ({ type, beachId, icon, color }) => {
   };
 
   const handleSave = async () => {
-    if (!form.name) {
-      toast.error(`${typeName.replace('s', '')} name is required`);
-      return;
-    }
     setSaving(true);
     try {
       const data = new FormData();
-      Object.entries(form).forEach(([k, v]) => data.append(k, v));
+      // Auto-generate name from beach name + type if not editing existing
+      const autoName = editing ? form.name : `${beachName || ''} ${typeName.replace('s', '')}`.trim();
+      data.append('name', autoName);
+      Object.entries(form).forEach(([k, v]) => {
+        if (k !== 'name') data.append(k, v);
+      });
       data.append('beach_id', beachId);
       imageFiles.forEach(f => data.append('images', f));
       if (deletedImages.length > 0) data.append('deletedImages', JSON.stringify(deletedImages));
@@ -219,17 +220,29 @@ const PropertyManager = ({ type, beachId, icon, color }) => {
         <Modal.Body>
           <Form>
             <Row className="g-3">
-              <Col md={6}>
-                <Form.Group>
-                  <Form.Label>Name *</Form.Label>
-                  <Form.Control
-                    type="text"
-                    value={form.name}
-                    onChange={(e) => setForm({ ...form, name: e.target.value })}
-                    placeholder={`e.g., ${type === 'cottage' ? 'Beachfront Cottage' : 'Deluxe Room'}`}
-                  />
-                </Form.Group>
-              </Col>
+              {editing && (
+                <Col md={6}>
+                  <Form.Group>
+                    <Form.Label>Name</Form.Label>
+                    <Form.Control
+                      type="text"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                      placeholder={`e.g., ${type === 'cottage' ? 'Beachfront Cottage' : 'Deluxe Room'}`}
+                    />
+                  </Form.Group>
+                </Col>
+              )}
+              {!editing && (
+                <Col xs={12}>
+                  <div className="p-3 rounded mb-2" style={{ background: '#f0fdfa', border: '1px solid #ccfbf1' }}>
+                    <small className="text-muted">Name will be auto-generated:</small>
+                    <div className="fw-bold mt-1" style={{ color: accent }}>
+                      {beachName} {typeName.replace('s', '')}
+                    </div>
+                  </div>
+                </Col>
+              )}
               <Col md={6}>
                 <Form.Group>
                   <Form.Label>Price (₱)</Form.Label>

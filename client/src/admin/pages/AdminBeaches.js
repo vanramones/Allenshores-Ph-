@@ -899,8 +899,8 @@ const AdminBeaches = () => {
         <Modal.Body>
           {propertiesBeach && (
             <>
-              <PropertyManager type="cottage" beachId={propertiesBeach.id} />
-              <PropertyManager type="room" beachId={propertiesBeach.id} />
+              <PropertyManager type="cottage" beachId={propertiesBeach.id} beachName={propertiesBeach.name} />
+              <PropertyManager type="room" beachId={propertiesBeach.id} beachName={propertiesBeach.name} />
             </>
           )}
         </Modal.Body>
